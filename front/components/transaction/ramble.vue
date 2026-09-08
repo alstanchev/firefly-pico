@@ -435,23 +435,23 @@ const onRambleTransactionEdited = (editedTransaction) => {
   editingRambleTransaction.value = null
 }
 
-const getReceiptsForTransaction = (transaction) => {
+const getReceiptsForTransaction = (transaction, receipts) => {
   const receiptIndex = transaction.assistant?.raw?.receiptIndex
-  if (Number.isInteger(receiptIndex) && rambleReceipts.value[receiptIndex]) {
-    return [rambleReceipts.value[receiptIndex]]
+  if (Number.isInteger(receiptIndex) && receipts[receiptIndex]) {
+    return [receipts[receiptIndex]]
   }
 
-  // Without a usable index, only an unambiguous single photo is attached.
-  return rambleReceipts.value.length === 1 ? rambleReceipts.value : []
+  // Without a usable index, the fallback covers only the unambiguous one-photo, one-draft case.
+  return receipts.length === 1 && rambleTransactions.value.length === 1 ? receipts : []
 }
 
-const attachReceipts = async (transaction) => {
+const attachReceipts = async (transaction, receipts) => {
   const journalId = get(transaction.response, 'data.data.attributes.transactions.0.transaction_journal_id')
   if (!journalId) {
     return
   }
 
-  for (const receipt of getReceiptsForTransaction(transaction)) {
+  for (const receipt of getReceiptsForTransaction(transaction, receipts)) {
     try {
       await new AttachmentRepository().uploadForTransaction(journalId, receipt.file)
     } catch {
@@ -462,6 +462,7 @@ const attachReceipts = async (transaction) => {
 
 const createRambleTransactions = async () => {
   const sessionId = rambleSessionId.value
+  const receipts = [...rambleReceipts.value]
   const transactionsToCreate = rambleTransactions.value.filter((transaction) => transaction.status !== createStatus.success)
   if (transactionsToCreate.length === 0) {
     return
@@ -497,7 +498,7 @@ const createRambleTransactions = async () => {
           rambleTransactions.value[transactionIndex].status = createStatus.success
           rambleTransactions.value[transactionIndex].response = response
           successCount += 1
-          await attachReceipts(rambleTransactions.value[transactionIndex])
+          await attachReceipts(rambleTransactions.value[transactionIndex], receipts)
           if (sessionId !== rambleSessionId.value) {
             return
           }

@@ -4,8 +4,12 @@
 
 const loadBitmap = async (file) => {
   if (typeof createImageBitmap === 'function') {
-    // from-image applies the EXIF rotation so portrait receipts are not sent sideways.
-    return createImageBitmap(file, { imageOrientation: 'from-image' })
+    try {
+      // from-image applies the EXIF rotation so portrait receipts are not sent sideways.
+      return await createImageBitmap(file, { imageOrientation: 'from-image' })
+    } catch {
+      // Fall through to the <img> decoder: HEIC and some JPEG variants reject here.
+    }
   }
 
   const url = URL.createObjectURL(file)
