@@ -29,6 +29,10 @@ class AssistantRambleTest extends TestCase
                 return $this->transcriptionStub ? ($this->transcriptionStub)() : Http::response(['text' => 'voice transcription']);
             }
 
+            if (str_contains($request->url(), 'chat/completions')) {
+                return Http::response(['choices' => [['message' => ['content' => '{"transactions":[]}']]]]);
+            }
+
             return match ($request->header('Authorization')[0] ?? $request->header('authorization')[0] ?? '') {
                 'Bearer test-token' => Http::response(['data' => ['id' => '1']]),
                 'Bearer other-token' => Http::response(['data' => ['id' => '2']]),
@@ -339,5 +343,37 @@ class AssistantRambleTest extends TestCase
 
         $response->assertStatus(401);
         Http::assertNotSent(fn($request) => str_contains($request->url(), 'example.com'));
+    }
+
+    public function test_interpret_transactions_forwards_image_content_parts_and_appends_context()
+    {
+        config([
+            'services.assistant_llm.endpoint' => 'https://llm.example.com/v1/chat/completions',
+            'services.assistant_llm.model' => 'gpt-4o-mini',
+        ]);
+
+        $userContent = [
+            ['type' => 'text', 'text' => '{"text":"lidl"}'],
+            ['type' => 'image_url', 'image_url' => ['url' => 'data:image/jpeg;base64,/9j/AAAA', 'detail' => 'high']],
+        ];
+
+        $response = $this->postJson('api/assistant/interpret-transactions', [
+            'context' => 'Return descriptions in English',
+            'payload' => [
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You extract transactions.'],
+                    ['role' => 'user', 'content' => $userContent],
+                ],
+            ],
+        ], $this->headers());
+
+        $response->assertStatus(200)->assertJsonPath('choices.0.message.content', '{"transactions":[]}');
+
+        Http::assertSent(function ($request) use ($userContent) {
+            return str_contains($request->url(), 'llm.example.com')
+                && $request['model'] === 'gpt-4o-mini'
+                && $request['messages'][1]['content'] === $userContent
+                && str_contains($request['messages'][0]['content'], 'Return descriptions in English');
+        });
     }
 }
