@@ -57,6 +57,7 @@ export const icons = {
   clone: 'IconCopy',
   close: 'IconX',
   magic: 'IconSparkles',
+  camera: 'IconCamera',
   microphone: 'IconMicrophone',
   stop: 'IconPlayerStop',
   play: 'IconPlayerPlay',

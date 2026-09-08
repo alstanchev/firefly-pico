@@ -353,6 +353,10 @@
     box-shadow: none;
 }
 
+.van-theme-dark .ramble-receipt-thumb {
+    border-color: #444;
+}
+
 .van-theme-dark .van-button.ramble-interpret-button {
     background: #2a2a2c;
     border-color: #f5f5f5;

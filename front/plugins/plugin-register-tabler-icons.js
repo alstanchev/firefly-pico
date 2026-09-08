@@ -67,6 +67,7 @@ import {
   IconPigMoney,
   IconRepeat,
   IconCalendarRepeat,
+  IconCamera,
   IconMicrophone,
   IconPlayerPlay,
   IconPlayerStop,
@@ -146,6 +147,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.component('IconPigMoney', IconPigMoney)
   nuxtApp.vueApp.component('IconRepeat', IconRepeat)
   nuxtApp.vueApp.component('IconCalendarRepeat', IconCalendarRepeat)
+  nuxtApp.vueApp.component('IconCamera', IconCamera)
   nuxtApp.vueApp.component('IconMicrophone', IconMicrophone)
   nuxtApp.vueApp.component('IconPlayerPlay', IconPlayerPlay)
   nuxtApp.vueApp.component('IconPlayerStop', IconPlayerStop)
