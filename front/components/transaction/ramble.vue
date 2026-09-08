@@ -27,6 +27,7 @@
           <ramble-input-card
             ref="inputCardRef"
             v-model="rambleText"
+            v-model:receipts="rambleReceipts"
             :saved-rambles="savedRambles"
             :saved-rambles-count="savedRamblesCount"
             :is-loading-saved="isLoadingSavedRambles"
@@ -88,11 +89,12 @@
 </template>
 
 <script setup>
-import { cloneDeep } from 'lodash-es'
+import { cloneDeep, get } from 'lodash-es'
 import { computed, onMounted, ref, watch } from 'vue'
 import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
 import AssistantRepository from '~/repository/AssistantRepository.js'
+import AttachmentRepository from '~/repository/AttachmentRepository.js'
 import RambleInputCard from '~/components/transaction/ramble/ramble-input-card.vue'
 import RambleTransactionItem from '~/components/transaction/ramble/ramble-transaction-item.vue'
 import RambleTransactionEditPopup from '~/components/transaction/ramble/ramble-transaction-edit-popup.vue'
@@ -128,6 +130,7 @@ const createStatus = {
 const showRamblePopup = ref(false)
 const showRambleTransactionPopup = ref(false)
 const rambleText = ref('')
+const rambleReceipts = ref([])
 const savedRambles = ref([])
 const loadedSavedRambleIds = ref([])
 const savedRamblesCount = ref(0)
@@ -303,6 +306,7 @@ const closeRamblePopup = () => {
 const resetRamble = () => {
   rambleSessionId.value += 1
   rambleText.value = ''
+  rambleReceipts.value = []
   savedRambles.value = []
   loadedSavedRambleIds.value = []
   rambleTransactions.value = []
@@ -344,7 +348,7 @@ const getInterpretationText = () => {
 
 const interpretRambleText = async () => {
   const text = getInterpretationText()
-  if (!text) {
+  if (!text && rambleReceipts.value.length === 0) {
     return
   }
 
@@ -362,6 +366,7 @@ const interpretRambleText = async () => {
       language: profileStore.language,
       externalContext: profileStore.assistantLlmContext,
       context: getRambleContext(),
+      receiptImages: rambleReceipts.value.map((receipt) => receipt.dataUrl),
     })
 
     if (sessionId !== rambleSessionId.value) {
@@ -430,6 +435,27 @@ const onRambleTransactionEdited = (editedTransaction) => {
   editingRambleTransaction.value = null
 }
 
+const getReceiptsForTransaction = (transaction) => {
+  const receiptIndex = transaction.assistant?.raw?.receiptIndex
+  if (Number.isInteger(receiptIndex) && rambleReceipts.value[receiptIndex]) {
+    return [rambleReceipts.value[receiptIndex]]
+  }
+
+  // Without a usable index, only an unambiguous single photo is attached.
+  return rambleReceipts.value.length === 1 ? rambleReceipts.value : []
+}
+
+const attachReceipts = async (transaction) => {
+  const journalId = get(transaction.response, 'data.data.attributes.transactions.0.transaction_journal_id')
+  if (!journalId) {
+    return
+  }
+
+  for (const receipt of getReceiptsForTransaction(transaction)) {
+    await new AttachmentRepository().uploadForTransaction(journalId, receipt.file)
+  }
+}
+
 const createRambleTransactions = async () => {
   const sessionId = rambleSessionId.value
   const transactionsToCreate = rambleTransactions.value.filter((transaction) => transaction.status !== createStatus.success)
@@ -466,6 +492,7 @@ const createRambleTransactions = async () => {
         if (isResponseSuccessful(response)) {
           rambleTransactions.value[transactionIndex].status = createStatus.success
           rambleTransactions.value[transactionIndex].response = response
+          await attachReceipts(rambleTransactions.value[transactionIndex])
           successCount += 1
           continue
         }
