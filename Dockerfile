@@ -57,7 +57,9 @@ COPY back/ .
 RUN mv .env.example .env
 RUN composer dump-autoload --no-dev --optimize
 RUN php artisan key:generate
-ARG APP_VERSION
+# BUILD_VERSION is passed by the Home Assistant Supervisor (add-on version)
+ARG BUILD_VERSION
+ARG APP_VERSION=${BUILD_VERSION}
 RUN echo $APP_VERSION > /var/www/html/VERSION
 RUN tar --owner=www-data --group=www-data --exclude=.git -czf /tmp/app-back.tar.gz .
 
@@ -169,7 +171,9 @@ ENV NGINX_PORT=80
 ENV QUEUE_CONNECTION=redis
 ENV REDIS_CLIENT=predis
 
-USER www-data
+# Start as root: hassio.sh reads the Home Assistant add-on options, fixes
+# data-dir ownership, then drops to www-data (see docker/docker-entrypoint.d/).
+RUN apk add --no-cache su-exec
 
-ENTRYPOINT ["/docker-entrypoint.d/start.sh"]
+ENTRYPOINT ["/docker-entrypoint.d/hassio.sh"]
 CMD ["run"]
