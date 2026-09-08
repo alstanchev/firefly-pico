@@ -428,4 +428,14 @@ class AssistantRambleTest extends TestCase
         $models = fcollect(Http::recorded(fn($request) => str_contains($request->url(), 'chat/completions')))->map(fn($pair) => $pair[0]['model'])->values()->all();
         $this->assertSame(['gpt-4.1', 'gpt-4.1', 'gpt-4o-mini'], $models);
     }
+
+    public function test_get_models_without_valid_token_fails()
+    {
+        config(['services.assistant_llm.endpoint' => 'https://llm.example.com/v1/chat/completions']);
+
+        $response = $this->getJson('api/assistant/models');
+
+        $response->assertStatus(401);
+        Http::assertNotSent(fn($request) => str_contains($request->url(), '/models'));
+    }
 }

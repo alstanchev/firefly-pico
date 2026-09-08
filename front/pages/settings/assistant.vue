@@ -42,7 +42,7 @@
           </div>
 
           <app-select
-            v-if="llmModels.length > 0"
+            v-if="llmModels.length > 0 || assistantLlmModel"
             v-model="assistantLlmModel"
             v-model:show-dropdown="isDropdownLlmModelVisible"
             v-model:search="llmModelSearch"
@@ -53,6 +53,7 @@
             :columns="1"
             :has-search="true"
           />
+          <div v-if="llmModelsError" class="llm-test-result llm-test-result-error word-break-word">{{ llmModelsError }}</div>
 
           <app-text-area
             v-model="assistantLlmContext"
@@ -178,6 +179,7 @@ const llmModels = ref([])
 const llmModelSearch = ref('')
 const isDropdownLlmModelVisible = ref(false)
 const llmTestResult = ref(null)
+const llmModelsError = ref('')
 const transcriptionTestResult = ref(null)
 
 // Ids the provider lists but which cannot answer a chat request. The list itself is never hardcoded.
@@ -225,11 +227,12 @@ const loadLlmModels = async () => {
   const response = await new AssistantRepository().getModels()
   if (ResponseUtils.isSuccess(response)) {
     llmModels.value = (response.data?.data ?? []).filter((id) => !hiddenModelPattern.test(id))
+    llmModelsError.value = ''
     return
   }
 
   llmModels.value = []
-  llmTestResult.value = { success: false, message: `${t('settings.assistant.llm_models_load_failed')}: ${response?.data?.message ?? ''}`.trim() }
+  llmModelsError.value = `${t('settings.assistant.llm_models_load_failed')}: ${response?.data?.message ?? ''}`.trim()
 }
 
 // The LLM config arrives asynchronously with the app info, so load the list once it is known.
