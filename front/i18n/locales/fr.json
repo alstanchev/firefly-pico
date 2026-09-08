@@ -220,7 +220,11 @@
       "llm_test_failed": "LLM configuration test failed",
       "transcription_test": "Test transcription configuration",
       "transcription_test_success": "Transcription configuration works",
-      "transcription_test_failed": "Transcription configuration test failed"
+      "transcription_test_failed": "Transcription configuration test failed",
+      "llm_model_select": "Model override",
+      "llm_model_select_title": "Select LLM model",
+      "llm_model_server_default": "Server default ({model})",
+      "llm_models_load_failed": "Could not load the model list"
     },
     "formatting_entry": "Formatage",
     "formatting": {

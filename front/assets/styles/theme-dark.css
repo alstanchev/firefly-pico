@@ -381,6 +381,16 @@
     background: rgba(236, 64, 122, 0.16);
 }
 
+.van-theme-dark .llm-test-result-ok {
+    color: #7bd28a;
+    background: rgba(102, 187, 106, 0.18);
+}
+
+.van-theme-dark .llm-test-result-error {
+    color: #ff8aa8;
+    background: rgba(236, 64, 122, 0.16);
+}
+
 .van-theme-dark .transaction-desktop-row {
     border-color: #2e2e33;
     color: #f1f5f9;
