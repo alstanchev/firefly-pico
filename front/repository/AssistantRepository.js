@@ -8,7 +8,7 @@ const getInterpretationPrompt = () =>
     'Return only one JSON object, with no markdown and no commentary.',
     'The JSON object must have a transactions array.',
     'Each transaction must use this shape:',
-    '{"amount": number|null, "currencyCode": string|null, "description": string, "tagNames": string[], "categoryName": string|null, "templateName": string|null, "budgetName": string|null, "sourceAccountName": string|null, "destinationAccountName": string|null, "type": "expense|income|transfer|null", "occurredAt": string|null, "notes": string|null}',
+    '{"amount": number|null, "currencyCode": string|null, "description": string, "tagNames": string[], "categoryName": string|null, "templateName": string|null, "budgetName": string|null, "sourceAccountName": string|null, "destinationAccountName": string|null, "type": "expense|income|transfer|null", "occurredAt": string|null, "notes": string|null, "receiptIndex": number|null}',
     'description is required for every transaction and must never be null or empty. It must be a short noun phrase (1-4 words) naming the merchant, place, item, or service, kept in the user\'s language. Strip verbs, actions, and filler words: "Am cumparat de la farmacie de 22 lei" gives description "farmacie", "bought some groceries at Lidl" gives "Lidl". Never include amounts or currencies. When the user does not state a subject, derive the description from the category, tag, or template that best summarizes the transaction.',
     'Split one utterance into multiple transactions when the user says "another", "and one", "plus", or otherwise describes more than one payment.',
     'Use the provided now and timezone to resolve relative dates and times such as yesterday, today, 30 minutes ago, or last Friday.',
@@ -21,6 +21,8 @@ const getInterpretationPrompt = () =>
     'Be conservative with semantic guesses. When there is no lexical match, set a supplied tag or category only when it is the single obvious real-world classification of the stated item or service. Prefer a direct, specific classification over broad labels such as necessities, shopping, or food. For example, an air conditioner clearly fits a supplied home tag better than necessities or food. If more than one candidate is plausible, the relationship is indirect, or confidence is not high, leave tagNames empty and categoryName null. Do not add both a child tag and its parent; the application adds tag ancestors automatically.',
     'Do not invent names that are missing from the supplied context. If the user explicitly says "tag food", put food in tagNames even without a context match.',
     'Prefer type expense unless the user clearly describes income or a transfer.',
+    'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put the purchased items in notes, one per line as "item price". Set receiptIndex to the 0-based position of the photo the transaction came from; leave it null for transactions that come from the text.',
+    'When the text and a photo describe the same purchase, return a single transaction and let the text override the photo. If a photo is not a receipt or is unreadable, do not invent a transaction for it.',
   ].join('\n')
 
 const tryParseJson = (content) => {
@@ -81,8 +83,28 @@ const normalizeTransactions = (json) => {
         type: transaction.type ?? null,
         occurredAt: date,
         notes: transaction.notes ?? null,
+        receiptIndex: Number.isInteger(transaction.receiptIndex) ? transaction.receiptIndex : Number.isInteger(transaction.receipt_index) ? transaction.receipt_index : null,
       }
     })
+}
+
+const buildUserContent = (data) => {
+  const text = JSON.stringify({
+    text: data.text,
+    savedRambles: data.savedRambles ?? [],
+    now: data.now,
+    timezone: data.timezone,
+    language: data.language,
+    context: data.context ?? {},
+  })
+
+  const receiptImages = data.receiptImages ?? []
+  if (receiptImages.length === 0) {
+    return text
+  }
+
+  // Small receipt print is only legible to the model at high detail.
+  return [{ type: 'text', text }, ...receiptImages.map((url) => ({ type: 'image_url', image_url: { url, detail: 'high' } }))]
 }
 
 export default class AssistantRepository extends BaseRepository {
@@ -130,14 +152,7 @@ export default class AssistantRepository extends BaseRepository {
           },
           {
             role: 'user',
-            content: JSON.stringify({
-              text: data.text,
-              savedRambles: data.savedRambles ?? [],
-              now: data.now,
-              timezone: data.timezone,
-              language: data.language,
-              context: data.context ?? {},
-            }),
+            content: buildUserContent(data),
           },
         ],
       },
