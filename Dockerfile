@@ -42,8 +42,10 @@ RUN ln -s /usr/bin/php82 /usr/bin/php
 #-----------------------------------------------------------------
 FROM base AS build-container
 
-# Installing composer
+# Installing composer. git lets composer fall back to cloning a package when
+# GitHub's zipball API is unreachable (seen on Home Assistant OS builds).
 COPY --from=composer_base /usr/bin/composer /usr/local/bin/composer
+RUN apk add --no-cache git
 
 #Configure backend - Step 1: Install dependencies
 WORKDIR /var/www/html
