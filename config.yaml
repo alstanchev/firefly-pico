@@ -1,0 +1,27 @@
+# Home Assistant add-on manifest. The add-on is built from this repository's
+# own Dockerfile on the Home Assistant host; there is no prebuilt image.
+# Bump "version" to make Home Assistant offer an update and rebuild.
+name: Firefly Pico
+version: "0.1.0"
+slug: firefly_pico
+description: Firefly III companion app for quick transaction entry (fork)
+url: https://github.com/alstanchev/firefly-pico
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+webui: http://[HOST]:[PORT:80]
+ports:
+  80/tcp: 6976
+ports_description:
+  80/tcp: Web interface
+map:
+  - type: addon_config
+    read_only: false
+    path: /var/www/html/database/data
+options:
+  firefly_url: ""
+schema:
+  firefly_url: url
