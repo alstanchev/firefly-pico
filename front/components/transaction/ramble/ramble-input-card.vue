@@ -38,7 +38,7 @@
         >
           <app-icon :icon="TablerIconConstants.camera" :size="16" />
         </van-button>
-        <input ref="receiptInputRef" type="file" accept="image/*" multiple hidden @change="onReceiptsSelected" >
+        <input ref="receiptInputRef" type="file" accept="image/*" multiple hidden @change="onReceiptsSelected" />
 
         <van-button
           v-if="appStore.isDesktopLayout"
@@ -83,7 +83,7 @@
 
       <div v-if="receipts.length > 0" class="display-flex flex-wrap gap-2">
         <div v-for="receipt in receipts" :key="receipt.id" class="ramble-receipt-thumb">
-          <img :src="receipt.dataUrl" :alt="$t('transaction.assistant_ramble_receipt')" >
+          <img :src="receipt.dataUrl" :alt="$t('transaction.assistant_ramble_receipt')" />
           <van-button round size="mini" type="danger" class="cursor-pointer ramble-receipt-remove" :disabled="isDisabled" :title="$t('delete')" @click="removeReceipt(receipt)">
             <app-icon :icon="TablerIconConstants.close" :size="12" />
           </van-button>
