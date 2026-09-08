@@ -418,6 +418,7 @@ const interpretRambleText = async () => {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       language: profileStore.language,
       externalContext: profileStore.assistantLlmContext,
+      model: profileStore.assistantLlmModel,
       context: getRambleContext(),
       receiptImages: rambleReceipts.value.map((receipt) => receipt.dataUrl),
     })
