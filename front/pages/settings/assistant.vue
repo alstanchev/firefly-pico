@@ -45,10 +45,11 @@
             v-if="llmModels.length > 0"
             v-model="assistantLlmModel"
             v-model:show-dropdown="isDropdownLlmModelVisible"
+            v-model:search="llmModelSearch"
             :label="$t('settings.assistant.llm_model_select')"
             :popup-title="$t('settings.assistant.llm_model_select_title')"
             :placeholder="$t('settings.assistant.llm_model_server_default', { model: appStore.llmModel })"
-            :list="llmModels"
+            :list="filteredLlmModels"
             :columns="1"
             :has-search="true"
           />
@@ -152,7 +153,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useProfileStore } from '~/stores/profileStore'
 import UIUtils from '~/utils/UIUtils'
 import { useToolbar } from '~/composables/useToolbar'
@@ -174,6 +175,7 @@ const isTestingLlm = ref(false)
 const isTestingTranscription = ref(false)
 const assistantLlmModel = ref('')
 const llmModels = ref([])
+const llmModelSearch = ref('')
 const isDropdownLlmModelVisible = ref(false)
 const llmTestResult = ref(null)
 const transcriptionTestResult = ref(null)
@@ -182,6 +184,11 @@ const transcriptionTestResult = ref(null)
 const hiddenModelPattern = /whisper|tts|transcribe|embedding|dall-e|moderation|realtime|image/i
 
 const effectiveLlmModel = computed(() => assistantLlmModel.value || appStore.llmModel)
+
+const filteredLlmModels = computed(() => {
+  const search = llmModelSearch.value.trim().toUpperCase()
+  return search ? llmModels.value.filter((id) => id.toUpperCase().includes(search)) : llmModels.value
+})
 
 const syncedSettings = [
   { store: profileStore, path: 'autoFocusAssistant', ref: autoFocusAssistant },
@@ -225,6 +232,17 @@ const loadLlmModels = async () => {
   llmTestResult.value = { success: false, message: `${t('settings.assistant.llm_models_load_failed')}: ${response?.data?.message ?? ''}`.trim() }
 }
 
+// The LLM config arrives asynchronously with the app info, so load the list once it is known.
+watch(
+  () => appStore.llmIsConfigured,
+  (isConfigured) => {
+    if (isConfigured && llmModels.value.length === 0) {
+      loadLlmModels()
+    }
+  },
+  { immediate: true },
+)
+
 const testLlm = async () => {
   isTestingLlm.value = true
   llmTestResult.value = null
@@ -265,7 +283,6 @@ toolbar.init({
 })
 
 onMounted(() => {
-  loadLlmModels()
   animateSettings()
 })
 </script>
