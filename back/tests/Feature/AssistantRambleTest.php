@@ -20,6 +20,9 @@ class AssistantRambleTest extends TestCase
     // Tests override this to fake a different transcription outcome.
     private $transcriptionStub = null;
 
+    // Tests override this to fake a different models-list outcome.
+    private $modelsStub = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -27,6 +30,10 @@ class AssistantRambleTest extends TestCase
         Http::fake(function ($request) {
             if (str_contains($request->url(), 'audio/transcriptions')) {
                 return $this->transcriptionStub ? ($this->transcriptionStub)() : Http::response(['text' => 'voice transcription']);
+            }
+
+            if (str_contains($request->url(), '/models')) {
+                return $this->modelsStub ? ($this->modelsStub)() : Http::response(['data' => [['id' => 'whisper-1'], ['id' => 'gpt-4o-mini'], ['id' => 'gpt-4o'], ['id' => '']]]);
             }
 
             if (str_contains($request->url(), 'chat/completions')) {
@@ -375,5 +382,50 @@ class AssistantRambleTest extends TestCase
                 && $request['messages'][1]['content'] === $userContent
                 && str_contains($request['messages'][0]['content'], 'Return descriptions in English');
         });
+    }
+
+    public function test_get_models_returns_sorted_ids_from_the_provider()
+    {
+        config(['services.assistant_llm.endpoint' => 'https://llm.example.com/v1/chat/completions', 'services.assistant_llm.api_key' => 'llm-key']);
+
+        $response = $this->getJson('api/assistant/models', $this->headers());
+
+        $response->assertStatus(200)->assertExactJson(['data' => ['gpt-4o', 'gpt-4o-mini', 'whisper-1']]);
+        Http::assertSent(fn($request) => $request->url() === 'https://llm.example.com/v1/models' && ($request->header('Authorization')[0] ?? '') === 'Bearer llm-key');
+    }
+
+    public function test_get_models_fails_when_the_endpoint_is_not_a_chat_completions_url()
+    {
+        config(['services.assistant_llm.endpoint' => 'https://llm.example.com/custom']);
+
+        $response = $this->getJson('api/assistant/models', $this->headers());
+
+        $response->assertStatus(422);
+        Http::assertNotSent(fn($request) => str_contains($request->url(), '/models'));
+    }
+
+    public function test_get_models_passes_provider_errors_through()
+    {
+        config(['services.assistant_llm.endpoint' => 'https://llm.example.com/v1/chat/completions']);
+        $this->modelsStub = fn() => Http::response(['error' => ['message' => 'Incorrect API key provided']], 401);
+
+        $response = $this->getJson('api/assistant/models', $this->headers());
+
+        $response->assertStatus(401)->assertJsonPath('message', 'Incorrect API key provided');
+    }
+
+    public function test_interpret_and_test_llm_use_the_requested_model()
+    {
+        config(['services.assistant_llm.endpoint' => 'https://llm.example.com/v1/chat/completions', 'services.assistant_llm.model' => 'gpt-4o-mini']);
+
+        $this->postJson('api/assistant/interpret-transactions', [
+            'model' => 'gpt-4.1',
+            'payload' => ['messages' => [['role' => 'user', 'content' => 'coffee 5 eur']]],
+        ], $this->headers())->assertStatus(200);
+        $this->postJson('api/assistant/test-llm', ['model' => 'gpt-4.1'], $this->headers())->assertStatus(200);
+        $this->postJson('api/assistant/test-llm', ['model' => ''], $this->headers())->assertStatus(200);
+
+        $models = fcollect(Http::recorded(fn($request) => str_contains($request->url(), 'chat/completions')))->map(fn($pair) => $pair[0]['model'])->values()->all();
+        $this->assertSame(['gpt-4.1', 'gpt-4.1', 'gpt-4o-mini'], $models);
     }
 }

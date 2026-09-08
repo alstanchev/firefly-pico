@@ -134,6 +134,7 @@ class AssistantController extends BaseController
         $request->validate([
             'payload' => ['required', 'array'],
             'payload.messages' => ['required', 'array'],
+            'model' => ['nullable', 'string', 'max:100'],
         ]);
 
         $config = app(AssistantLlmConfigService::class)->getConfig();
@@ -146,7 +147,7 @@ class AssistantController extends BaseController
 
         $payload = $request->input('payload');
         $this->appendContext($payload, $config['context'], $request->input('context'));
-        $payload['model'] = $config['model'];
+        $payload['model'] = $this->resolveModel($request, $config);
 
         return $this->sendLlmRequest($config, $payload);
     }
@@ -154,6 +155,7 @@ class AssistantController extends BaseController
     public function testLlm(Request $request)
     {
         BaseAuthorization::checkUser();
+        $request->validate(['model' => ['nullable', 'string', 'max:100']]);
         $config = app(AssistantLlmConfigService::class)->getConfig();
 
         if (!$config['isConfigured']) {
@@ -163,7 +165,7 @@ class AssistantController extends BaseController
         }
 
         return $this->sendLlmRequest($config, [
-            'model' => $config['model'],
+            'model' => $this->resolveModel($request, $config),
             'temperature' => 0,
             'max_tokens' => 1,
             'messages' => [['role' => 'user', 'content' => 'Reply OK.']],
@@ -182,6 +184,54 @@ class AssistantController extends BaseController
         }
 
         return $this->respond(['success' => true]);
+    }
+
+    public function getModels(Request $request)
+    {
+        BaseAuthorization::checkUser();
+        $config = app(AssistantLlmConfigService::class)->getConfig();
+
+        if (!$config['isConfigured']) {
+            return $this->setStatusCode(self::HTTP_CODE_UNPROCESSABLE_ENTITY)->respond([
+                'message' => 'Assistant LLM is not configured.',
+            ]);
+        }
+
+        // OpenAI-compatible APIs expose the model list next to the chat endpoint.
+        $modelsUrl = preg_replace('#/chat/completions/?$#', '/models', $config['endpoint'], 1, $replaced);
+        if (!$replaced) {
+            return $this->setStatusCode(self::HTTP_CODE_UNPROCESSABLE_ENTITY)->respond([
+                'message' => 'ASSISTANT_LLM_ENDPOINT must end with /chat/completions to list models.',
+            ]);
+        }
+
+        $request = Http::acceptJson()->connectTimeout(10)->timeout(30);
+        if ($config['apiKey']) {
+            $request = $request->withToken($config['apiKey']);
+        }
+
+        try {
+            $response = $request->get($modelsUrl);
+        } catch (ConnectionException $exception) {
+            return $this->setStatusCode(502)->respond([
+                'message' => $exception->getMessage() ?: 'Assistant LLM request failed.',
+            ]);
+        }
+
+        if (!$response->successful()) {
+            return $this->setStatusCode($response->status())->respond([
+                'message' => fget($response->json(), 'error.message') ?? fget($response->json(), 'message') ?? 'Assistant LLM request failed.',
+            ]);
+        }
+
+        $models = fcollect(fget($response->json(), 'data'))
+            ->map(fn($item) => trim((string)fget($item, 'id')))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return $this->respond(['data' => $models]);
     }
 
     private function appendContext(&$payload, $globalContext, $userContext)
@@ -204,6 +254,14 @@ class AssistantController extends BaseController
         }
 
         $payload['messages'][] = ['role' => 'system', 'content' => $context];
+    }
+
+    // A profile may pick a model in the app; otherwise the configured one is used.
+    private function resolveModel(Request $request, $config)
+    {
+        $model = trim((string)$request->input('model'));
+
+        return $model !== '' ? $model : $config['model'];
     }
 
     private function sendLlmRequest($config, $payload)
