@@ -151,6 +151,7 @@ export default class AssistantRepository extends BaseRepository {
   async interpretTransactions(data) {
     const requestData = {
       context: data.externalContext,
+      model: data.model,
       payload: {
         temperature: 0,
         stream: false,
@@ -185,11 +186,15 @@ export default class AssistantRepository extends BaseRepository {
     }
   }
 
-  async testLlm() {
-    return axios.post(`${this.getUrl()}/test-llm`, {}, { timeout: 60000 })
+  async getModels() {
+    return axios.get(`${this.getUrl()}/models`, { showErrorToast: false, timeout: 30000 })
+  }
+
+  async testLlm(model) {
+    return axios.post(`${this.getUrl()}/test-llm`, { model }, { timeout: 60000, showErrorToast: false })
   }
 
   async testTranscription() {
-    return axios.post(`${this.getUrl()}/test-transcription`, {}, { timeout: 120000 })
+    return axios.post(`${this.getUrl()}/test-transcription`, {}, { timeout: 120000, showErrorToast: false })
   }
 }
