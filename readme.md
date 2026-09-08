@@ -61,6 +61,7 @@ Check out the **[full documentation](https://cioraneanu.github.io/firefly-pico-d
 - ✅ Beautiful clean minimalistic UI :fire: subtle animations and dark-theme support :first_quarter_moon_with_face: 
 - ✅ Optimized for mobile, with PWA support for a native feel :iphone:
 - ✅ The Assistant makes recording an expense feel like magic :sparkles:
+- ✅ Snap a photo of a receipt in the Dictate popup and let the assistant fill in the transaction (uses the same OpenAI LLM configuration; the photo is attached to the transaction)
 - ✅ Expand Firefly data with icons for all resources :art:
 - ✅ Expand Firefly "tags" with the option of subtags for better granularity
 - ✅ Add "templates" to make auto-completing fields a breeze :loudspeaker:
