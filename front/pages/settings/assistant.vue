@@ -37,17 +37,38 @@
             <div class="llm-detail-row">
               <app-icon :icon="TablerIconConstants.magic" :size="16" />
               <span class="llm-detail-label text-muted">{{ $t('settings.assistant.ramble_model') }}</span>
-              <span class="llm-detail-value cursor-pointer" :title="appStore.llmModel" @click="showFullDetailValue(appStore.llmModel)">{{ appStore.llmModel }}</span>
+              <span class="llm-detail-value cursor-pointer" :title="effectiveLlmModel" @click="showFullDetailValue(effectiveLlmModel)">{{ effectiveLlmModel }}</span>
             </div>
           </div>
 
-          <app-text-area v-model="assistantLlmContext" class="assistant-llm-context" :label="$t('settings.assistant.llm_context')" :placeholder="$t('settings.assistant.llm_context_placeholder')" :visible-lines="2" />
+          <app-select
+            v-if="llmModels.length > 0"
+            v-model="assistantLlmModel"
+            v-model:show-dropdown="isDropdownLlmModelVisible"
+            :label="$t('settings.assistant.llm_model_select')"
+            :popup-title="$t('settings.assistant.llm_model_select_title')"
+            :placeholder="$t('settings.assistant.llm_model_server_default', { model: appStore.llmModel })"
+            :list="llmModels"
+            :columns="1"
+            :has-search="true"
+          />
 
-          <div v-if="appStore.llmIsConfigured" class="flex-center">
-            <van-button round size="small" plain :loading="isTestingLlm" @click="testLlm">
-              <app-icon :icon="TablerIconConstants.magic" :size="16" />
-              {{ $t('settings.assistant.llm_test') }}
-            </van-button>
+          <app-text-area
+            v-model="assistantLlmContext"
+            class="assistant-llm-context"
+            :label="$t('settings.assistant.llm_context')"
+            :placeholder="$t('settings.assistant.llm_context_placeholder')"
+            :visible-lines="2"
+          />
+
+          <div v-if="appStore.llmIsConfigured" class="display-flex flex-column gap-2">
+            <div class="flex-center">
+              <van-button round size="small" plain :loading="isTestingLlm" @click="testLlm">
+                <app-icon :icon="TablerIconConstants.magic" :size="16" />
+                {{ $t('settings.assistant.llm_test') }}
+              </van-button>
+            </div>
+            <div v-if="llmTestResult" class="llm-test-result word-break-word" :class="llmTestResult.success ? 'llm-test-result-ok' : 'llm-test-result-error'">{{ llmTestResult.message }}</div>
           </div>
 
           <template v-else>
@@ -83,7 +104,9 @@
             <div class="llm-detail-row">
               <app-icon :icon="TablerIconConstants.external" :size="16" />
               <span class="llm-detail-label text-muted">{{ $t('settings.assistant.transcription_endpoint') }}</span>
-              <span class="llm-detail-value cursor-pointer" :title="appStore.transcriptionEndpoint" @click="showFullDetailValue(appStore.transcriptionEndpoint)">{{ appStore.transcriptionEndpoint }}</span>
+              <span class="llm-detail-value cursor-pointer" :title="appStore.transcriptionEndpoint" @click="showFullDetailValue(appStore.transcriptionEndpoint)">{{
+                appStore.transcriptionEndpoint
+              }}</span>
             </div>
             <div class="llm-detail-row">
               <app-icon :icon="TablerIconConstants.magic" :size="16" />
@@ -99,11 +122,16 @@
 
           <div v-if="appStore.transcriptionIsConfigured && !appStore.transcriptionLanguage" class="text-size-12 text-muted">{{ $t('settings.assistant.transcription_language_info') }}</div>
 
-          <div v-if="appStore.transcriptionIsConfigured" class="flex-center">
-            <van-button round size="small" plain :loading="isTestingTranscription" @click="testTranscription">
-              <app-icon :icon="TablerIconConstants.microphone" :size="16" />
-              {{ $t('settings.assistant.transcription_test') }}
-            </van-button>
+          <div v-if="appStore.transcriptionIsConfigured" class="display-flex flex-column gap-2">
+            <div class="flex-center">
+              <van-button round size="small" plain :loading="isTestingTranscription" @click="testTranscription">
+                <app-icon :icon="TablerIconConstants.microphone" :size="16" />
+                {{ $t('settings.assistant.transcription_test') }}
+              </van-button>
+            </div>
+            <div v-if="transcriptionTestResult" class="llm-test-result word-break-word" :class="transcriptionTestResult.success ? 'llm-test-result-ok' : 'llm-test-result-error'">
+              {{ transcriptionTestResult.message }}
+            </div>
           </div>
 
           <template v-else>
@@ -124,7 +152,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useProfileStore } from '~/stores/profileStore'
 import UIUtils from '~/utils/UIUtils'
 import { useToolbar } from '~/composables/useToolbar'
@@ -144,12 +172,23 @@ const autoFocusAssistant = ref(false)
 const assistantLlmContext = ref('')
 const isTestingLlm = ref(false)
 const isTestingTranscription = ref(false)
+const assistantLlmModel = ref('')
+const llmModels = ref([])
+const isDropdownLlmModelVisible = ref(false)
+const llmTestResult = ref(null)
+const transcriptionTestResult = ref(null)
+
+// Ids the provider lists but which cannot answer a chat request. The list itself is never hardcoded.
+const hiddenModelPattern = /whisper|tts|transcribe|embedding|dall-e|moderation|realtime|image/i
+
+const effectiveLlmModel = computed(() => assistantLlmModel.value || appStore.llmModel)
 
 const syncedSettings = [
   { store: profileStore, path: 'autoFocusAssistant', ref: autoFocusAssistant },
   { store: profileStore, path: 'assistantTodoTagMatcher', ref: assistantTodoTagMatcher },
   { store: profileStore, path: 'assistantCurrency', ref: assistantCurrency },
   { store: profileStore, path: 'assistantLlmContext', ref: assistantLlmContext },
+  { store: profileStore, path: 'assistantLlmModel', ref: assistantLlmModel },
 ]
 
 watchSettingsStore(syncedSettings)
@@ -171,30 +210,51 @@ const showFullDetailValue = (value) => {
   UIUtils.showToast(value, 'primary', 3000)
 }
 
-const testLlm = async () => {
-  isTestingLlm.value = true
-  const response = await new AssistantRepository().testLlm()
-  isTestingLlm.value = false
-
-  if (ResponseUtils.isSuccess(response)) {
-    UIUtils.showToastSuccess(t('settings.assistant.llm_test_success'))
+const loadLlmModels = async () => {
+  if (!appStore.llmIsConfigured) {
     return
   }
 
-  UIUtils.showToastError(response?.data?.message ?? t('settings.assistant.llm_test_failed'))
+  const response = await new AssistantRepository().getModels()
+  if (ResponseUtils.isSuccess(response)) {
+    llmModels.value = (response.data?.data ?? []).filter((id) => !hiddenModelPattern.test(id))
+    return
+  }
+
+  llmModels.value = []
+  llmTestResult.value = { success: false, message: `${t('settings.assistant.llm_models_load_failed')}: ${response?.data?.message ?? ''}`.trim() }
+}
+
+const testLlm = async () => {
+  isTestingLlm.value = true
+  llmTestResult.value = null
+  const response = await new AssistantRepository().testLlm(assistantLlmModel.value)
+  isTestingLlm.value = false
+
+  const success = ResponseUtils.isSuccess(response)
+  const message = success ? t('settings.assistant.llm_test_success') : (response?.data?.message ?? t('settings.assistant.llm_test_failed'))
+  llmTestResult.value = { success, message }
+  if (success) {
+    UIUtils.showToastSuccess(message)
+  } else {
+    UIUtils.showToastError(message)
+  }
 }
 
 const testTranscription = async () => {
   isTestingTranscription.value = true
+  transcriptionTestResult.value = null
   const response = await new AssistantRepository().testTranscription()
   isTestingTranscription.value = false
 
-  if (ResponseUtils.isSuccess(response)) {
-    UIUtils.showToastSuccess(t('settings.assistant.transcription_test_success'))
-    return
+  const success = ResponseUtils.isSuccess(response)
+  const message = success ? t('settings.assistant.transcription_test_success') : (response?.data?.message ?? t('settings.assistant.transcription_test_failed'))
+  transcriptionTestResult.value = { success, message }
+  if (success) {
+    UIUtils.showToastSuccess(message)
+  } else {
+    UIUtils.showToastError(message)
   }
-
-  UIUtils.showToastError(response?.data?.message ?? t('settings.assistant.transcription_test_failed'))
 }
 
 const toolbar = useToolbar()
@@ -205,6 +265,7 @@ toolbar.init({
 })
 
 onMounted(() => {
+  loadLlmModels()
   animateSettings()
 })
 </script>

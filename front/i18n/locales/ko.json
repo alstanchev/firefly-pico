@@ -216,7 +216,11 @@
       "llm_test_failed": "LLM 설정 테스트 실패",
       "transcription_test": "음성 변환 설정 테스트",
       "transcription_test_success": "음성 변환 설정이 정상 작동합니다",
-      "transcription_test_failed": "음성 변환 설정 테스트 실패"
+      "transcription_test_failed": "음성 변환 설정 테스트 실패",
+      "llm_model_select": "Model override",
+      "llm_model_select_title": "Select LLM model",
+      "llm_model_server_default": "Server default ({model})",
+      "llm_models_load_failed": "Could not load the model list"
     },
     "formatting_entry": "서식",
     "formatting": {
