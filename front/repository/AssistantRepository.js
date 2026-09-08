@@ -187,7 +187,7 @@ export default class AssistantRepository extends BaseRepository {
   }
 
   async getModels() {
-    return axios.get(`${this.getUrl()}/models`, { showErrorToast: false, timeout: 30000 })
+    return axios.get(`${this.getUrl()}/models`, { showErrorToast: false, showLoading: false, timeout: 30000 })
   }
 
   async testLlm(model) {

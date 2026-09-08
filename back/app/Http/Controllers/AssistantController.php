@@ -205,13 +205,13 @@ class AssistantController extends BaseController
             ]);
         }
 
-        $request = Http::acceptJson()->connectTimeout(10)->timeout(30);
+        $httpRequest = Http::acceptJson()->connectTimeout(10)->timeout(30);
         if ($config['apiKey']) {
-            $request = $request->withToken($config['apiKey']);
+            $httpRequest = $httpRequest->withToken($config['apiKey']);
         }
 
         try {
-            $response = $request->get($modelsUrl);
+            $response = $httpRequest->get($modelsUrl);
         } catch (ConnectionException $exception) {
             return $this->setStatusCode(502)->respond([
                 'message' => $exception->getMessage() ?: 'Assistant LLM request failed.',
