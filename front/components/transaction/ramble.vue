@@ -452,7 +452,11 @@ const attachReceipts = async (transaction) => {
   }
 
   for (const receipt of getReceiptsForTransaction(transaction)) {
-    await new AttachmentRepository().uploadForTransaction(journalId, receipt.file)
+    try {
+      await new AttachmentRepository().uploadForTransaction(journalId, receipt.file)
+    } catch {
+      // Blob API failure, not an axios error; the transaction exists, the attachment is best effort.
+    }
   }
 }
 
@@ -492,8 +496,11 @@ const createRambleTransactions = async () => {
         if (isResponseSuccessful(response)) {
           rambleTransactions.value[transactionIndex].status = createStatus.success
           rambleTransactions.value[transactionIndex].response = response
-          await attachReceipts(rambleTransactions.value[transactionIndex])
           successCount += 1
+          await attachReceipts(rambleTransactions.value[transactionIndex])
+          if (sessionId !== rambleSessionId.value) {
+            return
+          }
           continue
         }
 
