@@ -1485,7 +1485,7 @@ svg {
     left: 0;
 }
 
-.app-select-create {
+.van-button.app-select-create {
     border: 1px dashed;
     border-radius: 10px;
 }

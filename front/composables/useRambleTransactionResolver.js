@@ -66,10 +66,13 @@ export const useRambleTransactionResolver = () => {
   const resolveTags = (tagNames = []) => {
     const resolved = tagNames.map((tagName) => ({ name: tagName, tag: resolveByName(tagIndex.value, tagName) }))
     const tags = uniqBy(resolved.map(({ tag }) => tag).filter(Boolean), 'id')
-    const unmatchedNames = resolved
-      .filter(({ tag }) => !tag)
-      .map(({ name }) => name?.trim())
-      .filter(Boolean)
+    const unmatchedNames = uniqBy(
+      resolved
+        .filter(({ tag }) => !tag)
+        .map(({ name }) => name?.trim())
+        .filter(Boolean),
+      normalizeName,
+    )
     return { tags, unmatchedNames }
   }
 
