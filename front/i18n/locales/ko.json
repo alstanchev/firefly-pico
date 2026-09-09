@@ -49,6 +49,7 @@
   "classifications": "분류",
   "total": "합계",
   "select_is_empty": "선택 항목 없음...",
+  "select_create": "Create \"{name}\"",
   "active": "활성",
   "calendar": "달력",
   "date": "날짜",

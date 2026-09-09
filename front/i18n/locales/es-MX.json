@@ -49,6 +49,7 @@
   "classifications": "Clasificaciones",
   "total": "Total",
   "select_is_empty": "Sin selección...",
+  "select_create": "Create \"{name}\"",
   "active": "Activo",
   "calendar": "Calendario",
   "date": "Fecha",
