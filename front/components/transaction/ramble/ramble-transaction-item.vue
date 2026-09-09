@@ -5,11 +5,17 @@
       <div v-if="transaction.error" class="text-size-12 text-danger word-break-word flex-1-w">{{ transaction.error }}</div>
     </div>
 
+    <div v-if="categorySuggestion || tagSuggestions.length" class="text-size-12 text-muted px-3 pt-2">
+      <div v-if="categorySuggestion">{{ $t('transaction.assistant_ramble_unmatched_category', { name: categorySuggestion }) }}</div>
+      <div v-if="tagSuggestions.length">{{ $t('transaction.assistant_ramble_unmatched_tags', { names: tagSuggestions.join(', ') }) }}</div>
+    </div>
+
     <transaction-list-item :value="transaction.item" :is-detailed-mode="true" @on-edit="onEdit" @on-delete="onDelete" />
   </div>
 </template>
 
 <script setup>
+import { get } from 'lodash-es'
 import TransactionListItem from '~/components/list-items/transaction-list-item.vue'
 
 const emit = defineEmits(['delete', 'edit'])
@@ -17,6 +23,9 @@ const transaction = defineModel({
   type: Object,
   required: true,
 })
+
+const categorySuggestion = computed(() => get(transaction.value, 'item.attributes.transactions.0.categorySuggestion'))
+const tagSuggestions = computed(() => get(transaction.value, 'item.attributes.transactions.0.tagSuggestions') ?? [])
 
 const isCreating = computed(() => transaction.value.status === 'creating')
 const isCreated = computed(() => transaction.value.status === 'success')

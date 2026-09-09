@@ -19,21 +19,24 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
   const categoryStore = useCategoryStore()
   const tagStore = useTagStore()
 
-  const { amount, amountForeign, date, tags, description, notes, budget, piggyBank, accountSource, accountDestination, category, type, currencyForeign } = generateChildren(item, [
-    { computed: 'amount', parentKey: `${transactionPathKey}.amount` },
-    { computed: 'amountForeign', parentKey: `${transactionPathKey}.amountForeign` },
-    { computed: 'currencyForeign', parentKey: `${transactionPathKey}.currencyForeign` },
-    { computed: 'date', parentKey: `${transactionPathKey}.date` },
-    { computed: 'tags', parentKey: `${transactionPathKey}.tags` },
-    { computed: 'description', parentKey: `${transactionPathKey}.description` },
-    { computed: 'notes', parentKey: `${transactionPathKey}.notes` },
-    { computed: 'accountSource', parentKey: `${transactionPathKey}.accountSource` },
-    { computed: 'accountDestination', parentKey: `${transactionPathKey}.accountDestination` },
-    { computed: 'category', parentKey: `${transactionPathKey}.category` },
-    { computed: 'type', parentKey: `${transactionPathKey}.type` },
-    { computed: 'budget', parentKey: `${transactionPathKey}.budget` },
-    { computed: 'piggyBank', parentKey: `${transactionPathKey}.piggyBank` },
-  ])
+  const { amount, amountForeign, date, tags, description, notes, budget, piggyBank, accountSource, accountDestination, category, type, currencyForeign, categorySuggestion, tagSuggestions } =
+    generateChildren(item, [
+      { computed: 'amount', parentKey: `${transactionPathKey}.amount` },
+      { computed: 'amountForeign', parentKey: `${transactionPathKey}.amountForeign` },
+      { computed: 'currencyForeign', parentKey: `${transactionPathKey}.currencyForeign` },
+      { computed: 'date', parentKey: `${transactionPathKey}.date` },
+      { computed: 'tags', parentKey: `${transactionPathKey}.tags` },
+      { computed: 'description', parentKey: `${transactionPathKey}.description` },
+      { computed: 'notes', parentKey: `${transactionPathKey}.notes` },
+      { computed: 'accountSource', parentKey: `${transactionPathKey}.accountSource` },
+      { computed: 'accountDestination', parentKey: `${transactionPathKey}.accountDestination` },
+      { computed: 'category', parentKey: `${transactionPathKey}.category` },
+      { computed: 'type', parentKey: `${transactionPathKey}.type` },
+      { computed: 'budget', parentKey: `${transactionPathKey}.budget` },
+      { computed: 'piggyBank', parentKey: `${transactionPathKey}.piggyBank` },
+      { computed: 'categorySuggestion', parentKey: `${transactionPathKey}.categorySuggestion` },
+      { computed: 'tagSuggestions', parentKey: `${transactionPathKey}.tagSuggestions` },
+    ])
 
   const extraDates = generateChildren(
     item,
@@ -186,6 +189,8 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
     accountSource: newAccountSource,
     accountDestination: newAccountDestination,
     type: newType,
+    categorySuggestion: newCategorySuggestion = null,
+    tagSuggestions: newTagSuggestions = [],
   }) => {
     resetItemInPlace()
 
@@ -233,6 +238,9 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
       date.value = addDays(new Date(), newDateOffset)
     }
     attemptAccountsFix()
+
+    categorySuggestion.value = newCategorySuggestion
+    tagSuggestions.value = newTagSuggestions
   }
 
   const onSubDay = () => {
@@ -299,6 +307,13 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
 
   const showSourceAccountSuggestion = computed(() => !profileStore.defaultAccountSource && !accountSource.value)
 
+  const tagSuggestion = computed({
+    get: () => head(tagSuggestions.value) ?? null,
+    set: (value) => {
+      if (value === null) tagSuggestions.value = (tagSuggestions.value ?? []).slice(1)
+    },
+  })
+
   return {
     amount,
     amountForeign,
@@ -328,5 +343,8 @@ export const useTransactionForm = ({ item, itemId, profileStore = useProfileStor
     accountSourceBinding,
     accountDestinationBinding,
     showSourceAccountSuggestion,
+    categorySuggestion,
+    tagSuggestions,
+    tagSuggestion,
   }
 }

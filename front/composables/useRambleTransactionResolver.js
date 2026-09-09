@@ -57,12 +57,20 @@ export const useRambleTransactionResolver = () => {
       return exactMatch.item
     }
 
-    const partialMatch = index.find((entry) => entry.normalizedNames.some((itemName) => itemName.length >= 3 && (itemName.includes(normalizedName) || normalizedName.includes(itemName))))
+    const partialMatch = index.find(
+      (entry) => normalizedName.length >= 3 && entry.normalizedNames.some((itemName) => itemName.length >= 3 && (itemName.includes(normalizedName) || normalizedName.includes(itemName))),
+    )
     return partialMatch?.item ?? null
   }
 
   const resolveTags = (tagNames = []) => {
-    return uniqBy(tagNames.map((tagName) => resolveByName(tagIndex.value, tagName)).filter(Boolean), 'id')
+    const resolved = tagNames.map((tagName) => ({ name: tagName, tag: resolveByName(tagIndex.value, tagName) }))
+    const tags = uniqBy(resolved.map(({ tag }) => tag).filter(Boolean), 'id')
+    const unmatchedNames = resolved
+      .filter(({ tag }) => !tag)
+      .map(({ name }) => name?.trim())
+      .filter(Boolean)
+    return { tags, unmatchedNames }
   }
 
   const resolveCategory = (categoryName) => {
@@ -122,7 +130,7 @@ export const useRambleTransactionResolver = () => {
 
   const resolveRambleTransaction = (rawTransaction, index) => {
     const template = resolveTemplate(rawTransaction.templateName)
-    const tags = resolveTags(rawTransaction.tagNames)
+    const { tags, unmatchedNames } = resolveTags(rawTransaction.tagNames)
     const category = resolveCategory(rawTransaction.categoryName)
     const budget = resolveBudget(rawTransaction.budgetName)
     const type = resolveTransactionType(rawTransaction.type)
@@ -150,6 +158,8 @@ export const useRambleTransactionResolver = () => {
       description: rawDescription,
       notes: rawTransaction.notes,
       date: resolveDate(rawTransaction.occurredAt),
+      categorySuggestion: !category && rawTransaction.categoryName?.trim() ? rawTransaction.categoryName.trim() : null,
+      tagSuggestions: unmatchedNames,
     }
   }
 

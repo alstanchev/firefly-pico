@@ -42,7 +42,13 @@
         v-bind="accountDestinationBinding"
       />
 
-      <category-select v-if="profileStore.categoriesEnabled" v-model="category" :can-create="true" :style="getStyleForField(transactionFormField.category)" />
+      <category-select
+        v-if="profileStore.categoriesEnabled"
+        v-model="category"
+        v-model:suggested-search="categorySuggestion"
+        :can-create="true"
+        :style="getStyleForField(transactionFormField.category)"
+      />
 
       <app-field
         v-model="description"
@@ -58,7 +64,7 @@
         :style="getStyleForField(transactionFormField.description)"
       />
 
-      <tag-select v-if="profileStore.tagsEnabled" v-model="tags" :can-create="true" :style="getStyleForField(transactionFormField.tags)" />
+      <tag-select v-if="profileStore.tagsEnabled" v-model="tags" v-model:suggested-search="tagSuggestion" :can-create="true" :style="getStyleForField(transactionFormField.tags)" />
 
       <div :style="getStyleForField(transactionFormField.date)">
         <app-date-time-grid v-model="date" name="date" :rules="[rule.required()]" required />
@@ -154,6 +160,8 @@ const {
   accountSourceBinding,
   accountDestinationBinding,
   showSourceAccountSuggestion,
+  categorySuggestion,
+  tagSuggestion,
 } = useTransactionForm({ item, itemId, profileStore })
 
 const isFormDisabled = computed(() => props.disabled || isSplitTransaction.value)
