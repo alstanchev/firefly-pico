@@ -128,6 +128,5 @@ const onCreate = async (name) => {
   if (!newItem) return
   if (search.value.trim() === typed) search.value = ''
   onSelectCell(newItem)
-  suggestedSearch.value = null
 }
 </script>
