@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+- Category and tag pickers on the transaction form can create a new
+  entry on the spot: type a name that doesn't exist and tap the
+  "Create" row to add it and select it, without leaving the form.
+- When the receipt assistant reads a category or tag name that doesn't
+  match anything in the store, the name is no longer dropped: the
+  draft card shows it as not found, and opening the picker pre-types
+  it so it's one tap away from being created.
+
 ## 0.2.1
 
 - Receipt scanning: a camera button inside the dictate popup so more
