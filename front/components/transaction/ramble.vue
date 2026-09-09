@@ -5,6 +5,18 @@
     </van-button>
   </van-badge>
 
+  <van-button
+    v-if="appStore.llmIsConfigured"
+    size="small"
+    class="cursor-pointer ramble-trigger-button"
+    :loading="isPreparingReceipts"
+    :title="$t('transaction.assistant_ramble_scan_receipt')"
+    @click="receiptInputRef?.click()"
+  >
+    <app-icon :icon="TablerIconConstants.camera" :size="16" />
+  </van-button>
+  <input ref="receiptInputRef" type="file" accept="image/*" multiple hidden @change="onReceiptsSelected" />
+
   <app-popup v-model:show="showRamblePopup" :popup-style="ramblePopupStyle">
     <div ref="popupRef" class="display-flex flex-direction-column h-100 m-h-0 position-relative" :aria-busy="isInterpreting">
       <div class="display-flex flex-direction-column h-100 m-h-0" :class="{ 'pointer-events-none': isRambleFormDisabled }" :inert="isRambleFormDisabled">
@@ -104,6 +116,8 @@ import { useTransactionAssistantDraft } from '~/composables/useTransactionAssist
 import TransactionRepository from '~/repository/TransactionRepository.js'
 import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import UIUtils from '~/utils/UIUtils.js'
+import { compressImageToJpeg, blobToDataUrl } from '~/utils/ImageUtils.js'
+import { getGUID } from '~/utils/Utils.js'
 
 const props = defineProps({
   assistantText: {
@@ -296,6 +310,42 @@ const openRamblePopup = async () => {
 
   showRamblePopup.value = true
   await refreshSavedRambleCount({ showLoading: false })
+}
+
+// Three photos keep the base64 request well under PHP's 8M post limit and the 60 s LLM timeout.
+const maxReceipts = 3
+const receiptInputRef = ref(null)
+const isPreparingReceipts = ref(false)
+
+const onReceiptsSelected = async (event) => {
+  const selected = Array.from(event.target.files ?? [])
+  event.target.value = ''
+
+  const files = selected.slice(0, Math.max(0, maxReceipts - rambleReceipts.value.length))
+  if (selected.length > files.length) {
+    UIUtils.showToastError(t('transaction.assistant_ramble_receipt_limit', { count: maxReceipts }))
+  }
+  if (files.length === 0) {
+    return
+  }
+
+  isPreparingReceipts.value = true
+  try {
+    const prepared = []
+    for (const file of files) {
+      const blob = await compressImageToJpeg(file)
+      const jpeg = new File([blob], `receipt-${Date.now()}-${prepared.length}.jpg`, { type: 'image/jpeg' })
+      prepared.push({ id: getGUID(), file: jpeg, dataUrl: await blobToDataUrl(jpeg) })
+    }
+    rambleReceipts.value = [...rambleReceipts.value, ...prepared]
+  } catch {
+    UIUtils.showToastError(t('transaction.assistant_ramble_receipt_failed'))
+    return
+  } finally {
+    isPreparingReceipts.value = false
+  }
+
+  await openRamblePopup()
 }
 
 const closeRamblePopup = () => {
