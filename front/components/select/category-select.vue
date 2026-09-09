@@ -8,9 +8,11 @@
     :popup-title="$t('category_select')"
     :list="filteredList"
     :columns="appStore.gridColumns"
-
     :get-display-value="getDisplayValue"
+    :create-name="createName"
+    :is-creating="isCreating"
     v-bind="dynamicAttrs"
+    @create="onCreate"
   >
     <template #left-icon>
       <app-icon :icon="TablerIconConstants.category" :size="20" />
@@ -43,8 +45,10 @@ import Category from '~/models/Category'
 
 import TablerIconConstants from '~/constants/TablerIconConstants'
 import Tag from '~/models/Tag.js'
+import LanguageUtils from '~/utils/LanguageUtils.js'
 
 const categoryStore = useCategoryStore()
+const profileStore = useProfileStore()
 const appStore = useAppStore()
 const attrs = useAttrs()
 const { dynamicAttrs } = useFormAttributes(attrs)
@@ -55,11 +59,16 @@ const props = defineProps({
   label: {
     type: String,
   },
+  canCreate: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const modelValue = defineModel()
 const showDropdown = ref(false)
 const search = ref('')
+const suggestedSearch = defineModel('suggestedSearch', { type: String, default: null })
 
 const filteredList = computed(() => {
   const list = categoryStore.categoryList
@@ -71,11 +80,30 @@ const filteredList = computed(() => {
   })
 })
 
+const createName = computed(() => {
+  if (!props.canCreate) return null
+  let name = search.value.trim()
+  if (!name) return null
+  if (profileStore.lowerCaseCategoryName) name = name.toLowerCase()
+  if (profileStore.stripAccents) name = LanguageUtils.removeAccents(name)
+  const key = LanguageUtils.removeAccentsAndLowerCase(name)
+  const exists = categoryStore.categoryList.some((item) => LanguageUtils.removeAccentsAndLowerCase(Category.getDisplayName(item)) === key)
+  return exists ? null : name
+})
+
+watch(
+  () => [showDropdown.value, suggestedSearch.value],
+  ([isOpen, suggestion]) => {
+    if (isOpen && suggestion) search.value = suggestion
+  },
+)
+
 // ------ Methods ------
 
 const onSelectCell = (value) => {
   modelValue.value = value
   showDropdown.value = false
+  suggestedSearch.value = null
 }
 
 const getDisplayValue = (value) => {
@@ -87,5 +115,18 @@ const onRefresh = async () => {
   isLoading.value = true
   await categoryStore.fetchCategories()
   isLoading.value = false
+}
+
+const isCreating = ref(false)
+const onCreate = async (name) => {
+  if (isCreating.value) return
+  isCreating.value = true
+  const typed = search.value.trim()
+  const newItem = await categoryStore.createCategory(name)
+  isCreating.value = false
+  if (!newItem) return
+  if (search.value.trim() === typed) search.value = ''
+  onSelectCell(newItem)
+  suggestedSearch.value = null
 }
 </script>
