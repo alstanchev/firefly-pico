@@ -9,7 +9,7 @@ const getInterpretationPrompt = (hasReceipts) =>
     'The JSON object must have a transactions array.',
     'Each transaction must use this shape:',
     hasReceipts
-      ? '{"amount": number|null, "currencyCode": string|null, "description": string, "tagNames": string[], "categoryName": string|null, "templateName": string|null, "budgetName": string|null, "sourceAccountName": string|null, "destinationAccountName": string|null, "type": "expense|income|transfer|null", "occurredAt": string|null, "notes": string|null, "receiptIndex": number|null}'
+      ? '{"amount": number|null, "currencyCode": string|null, "description": string, "tagNames": string[], "categoryName": string|null, "templateName": string|null, "budgetName": string|null, "sourceAccountName": string|null, "destinationAccountName": string|null, "type": "expense|income|transfer|null", "occurredAt": string|null, "notes": string|null, "receiptIndexes": number[]}'
       : '{"amount": number|null, "currencyCode": string|null, "description": string, "tagNames": string[], "categoryName": string|null, "templateName": string|null, "budgetName": string|null, "sourceAccountName": string|null, "destinationAccountName": string|null, "type": "expense|income|transfer|null", "occurredAt": string|null, "notes": string|null}',
     'description is required for every transaction and must never be null or empty. It must be a short noun phrase (1-4 words) naming the merchant, place, item, or service, kept in the user\'s language. Strip verbs, actions, and filler words: "Am cumparat de la farmacie de 22 lei" gives description "farmacie", "bought some groceries at Lidl" gives "Lidl". Never include amounts or currencies. When the user does not state a subject, derive the description from the category, tag, or template that best summarizes the transaction.',
     'Split one utterance into multiple transactions when the user says "another", "and one", "plus", or otherwise describes more than one payment.',
@@ -25,7 +25,8 @@ const getInterpretationPrompt = (hasReceipts) =>
     'Prefer type expense unless the user clearly describes income or a transfer.',
     ...(hasReceipts
       ? [
-          'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put the purchased items in notes, one per line as "item price". Set receiptIndex to the 0-based position of the photo the transaction came from; leave it null for transactions that come from the text.',
+          'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put every purchased item in notes, one per line, always with its price as printed: "item - price", or "item - quantity x unit price = line total" when the document prints a quantity and a unit price. Never list an item without a price. Set receiptIndexes to the 0-based positions of every photo the transaction came from; use an empty array for transactions that come from the text.',
+          'Several photos can belong to one purchase, for example a long receipt split across photos, or a fiscal receipt together with the invoice it pays. Return a single transaction for them: take the total from the receipt, the item lines from the most detailed photo, and put all of their positions in receiptIndexes.',
           'When the text and a photo describe the same purchase, return a single transaction and let the text override the photo. If a photo is not a receipt or is unreadable, do not invent a transaction for it.',
         ]
       : []),
@@ -76,8 +77,10 @@ const normalizeTransactions = (json) => {
         tags = [tags]
       }
 
-      const rawReceiptIndex = transaction.receiptIndex ?? transaction.receipt_index
-      const receiptIndex = rawReceiptIndex === null || rawReceiptIndex === undefined || rawReceiptIndex === '' ? null : Number(rawReceiptIndex)
+      let receiptIndexes = transaction.receiptIndexes ?? transaction.receipt_indexes ?? transaction.receiptIndex ?? transaction.receipt_index ?? []
+      if (!Array.isArray(receiptIndexes)) {
+        receiptIndexes = [receiptIndexes]
+      }
 
       return {
         amount: transaction.amount ?? null,
@@ -92,7 +95,7 @@ const normalizeTransactions = (json) => {
         type: transaction.type ?? null,
         occurredAt: date,
         notes: transaction.notes ?? null,
-        receiptIndex: Number.isInteger(receiptIndex) ? receiptIndex : null,
+        receiptIndexes: receiptIndexes.map((index) => (index === null || index === '' ? NaN : Number(index))).filter(Number.isInteger),
       }
     })
 }

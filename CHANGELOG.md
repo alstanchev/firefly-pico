@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Receipt scanning: a camera button inside the dictate popup so more
+  photos can be taken one after another, up to three per ramble.
+- Several photos can belong to one transaction (a long receipt, or a
+  receipt with its invoice) and all of them are attached to it.
+- Every item line the assistant writes into the notes carries its price.
+
 ## 0.2.0
 
 - Add-on options for the AI assistant: LLM and transcription API key,
