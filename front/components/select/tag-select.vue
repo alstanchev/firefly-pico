@@ -123,7 +123,6 @@ watch(
 // ------ Methods ------
 
 const onSelectCell = (item) => {
-  suggestedSearch.value = null
   if (props.isMultiSelect) {
     const targetTags = props.autoSelectParents ? Tag.getTagWithParents(item) : [item]
 
@@ -137,11 +136,13 @@ const onSelectCell = (item) => {
       // newValue = newValue.filter(value => !isEqual(item, value))
     } else {
       newValue = uniqBy([...newValue, ...targetTags], 'id')
+      suggestedSearch.value = null
     }
     modelValue.value = newValue
   } else {
     modelValue.value = item
     showDropdown.value = false
+    suggestedSearch.value = null
   }
 }
 
@@ -165,7 +166,6 @@ const onCreate = async (name) => {
   if (!newItem) return
   if (search.value.trim() === typed) search.value = ''
   onSelectCell(newItem)
-  suggestedSearch.value = null
 }
 
 const isItemSelected = (option) => {
