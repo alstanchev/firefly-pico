@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { keyBy, cloneDeep } from 'lodash-es'
+import { get, keyBy, cloneDeep } from 'lodash-es'
 import { useLocalStorage } from '@vueuse/core'
 import TagRepository from '~/repository/TagRepository'
 import TagTransformer from '~/transformers/TagTransformer'
 import { listToTree, setLevel, sortByPath, treeToList } from '~/utils/DataUtils'
 import LanguageUtils from '~/utils/LanguageUtils.js'
 import { useProfileStore } from '~/stores/profileStore'
+import Tag from '~/models/Tag'
+import ResponseUtils from '~/utils/ResponseUtils'
 
 export const useTagStore = defineStore('tag', () => {
   const tagList = useLocalStorage('tagList', [])
@@ -45,6 +47,16 @@ export const useTagStore = defineStore('tag', () => {
     isLoadingTags.value = false
   }
 
+  async function createTag(name) {
+    const item = new Tag().getEmpty()
+    item.attributes.tag = name
+    const response = await new TagRepository().insert(TagTransformer.transformToApi(item))
+    if (!ResponseUtils.isSuccess(response)) return null
+    const newItem = TagTransformer.transformFromApi(get(response, 'data.data'))
+    tagList.value = [newItem, ...tagList.value]
+    return newItem
+  }
+
   return {
     tagList,
     isLoadingTags,
@@ -53,5 +65,6 @@ export const useTagStore = defineStore('tag', () => {
     tagDictionaryById,
     tagListHierarchy,
     fetchTags,
+    createTag,
   }
 })

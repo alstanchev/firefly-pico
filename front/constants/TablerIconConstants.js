@@ -84,6 +84,7 @@ export const icons = {
   order: 'IconMenuOrder',
   list: 'IconListDetails',
   amountButtons: 'IconBusinessplan',
+  add: 'IconPlus',
 
   // ------ Icon Select -----
 

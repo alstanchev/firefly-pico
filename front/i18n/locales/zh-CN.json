@@ -42,6 +42,7 @@
   "classifications": "分类",
   "total": "全部的",
   "select_is_empty": "无选择...",
+  "select_create": "Create \"{name}\"",
   "active": "积极的",
   "calendar": "Calendar",
   "date": "日期",

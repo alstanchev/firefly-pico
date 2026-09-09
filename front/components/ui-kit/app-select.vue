@@ -32,7 +32,7 @@
         <div v-if="props.popupTitle" class="van-popup-title">{{ props.popupTitle }}</div>
 
         <div v-if="hasSearch" style="margin-right: 12px" class="p-1 flex-center-vertical gap-1">
-          <van-search v-model="search" :placeholder="$t('search_placeholder')" class="flex-1" />
+          <van-search v-model="search" :placeholder="$t('search_placeholder')" class="flex-1" @search="props.createName && !props.isCreating && emit('create', props.createName)" />
 
           <slot name="top-right" />
         </div>
@@ -51,6 +51,18 @@
               </template>
             </van-grid>
           </slot>
+
+          <van-button
+            v-if="props.hasSearch && props.createName"
+            size="small"
+            class="app-select-create cursor-pointer flex-center-vertical gap-1 m-2"
+            :loading="props.isCreating"
+            :disabled="props.isCreating"
+            @click="emit('create', props.createName)"
+          >
+            <app-icon v-if="!props.isCreating" :icon="TablerIconConstants.add" :size="16" />
+            <span class="text-size-12">{{ $t('select_create', { name: props.createName }) }}</span>
+          </van-button>
         </div>
       </div>
     </app-popup>
@@ -63,10 +75,12 @@ import { get } from 'lodash-es'
 import { useFormAttributes } from '~/composables/useFormAttributes'
 import { isEqual } from 'lodash-es/lang'
 import { useSwipeToDismiss } from '~/composables/useSwipeToDismiss'
+import TablerIconConstants from '~/constants/TablerIconConstants.js'
 
 const modelValue = defineModel()
 const showDropdown = defineModel('showDropdown', false)
 const search = defineModel('search')
+const emit = defineEmits(['create'])
 const popupRef = ref(null)
 const popupContentRef = ref(null)
 
@@ -125,6 +139,14 @@ const props = defineProps({
   },
   teleport: {},
   zIndex: {},
+  createName: {
+    type: String,
+    default: null,
+  },
+  isCreating: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const attrs = useAttrs()

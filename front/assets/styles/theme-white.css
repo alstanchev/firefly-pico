@@ -1485,6 +1485,11 @@ svg {
     left: 0;
 }
 
+.app-select-create {
+    border: 1px dashed;
+    border-radius: 10px;
+}
+
 .desktop-content {
     flex: 1;
     min-width: 0;

@@ -49,6 +49,7 @@
   "classifications": "Классификации",
   "total": "Итого",
   "select_is_empty": "Нет выбора...",
+  "select_create": "Create \"{name}\"",
   "active": "Активный",
   "calendar": "Календарь",
   "date": "Дата",

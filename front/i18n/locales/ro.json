@@ -49,6 +49,7 @@
   "classifications": "Clasificări",
   "total": "Total",
   "select_is_empty": "Nicio selecție...",
+  "select_create": "Create \"{name}\"",
   "active": "Activ",
   "calendar": "Calendar",
   "date": "Dată",
