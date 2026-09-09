@@ -9,9 +9,11 @@
     :list="filteredList"
     :is-multi-select="props.isMultiSelect"
     :get-display-value="getDisplayValue"
+    :create-name="createName"
+    :is-creating="isCreating"
     v-bind="dynamicAttrs"
+    @create="onCreate"
   >
-
     <template #left-icon>
       <app-icon :icon="TablerIconConstants.tag" :size="20" />
     </template>
@@ -58,6 +60,7 @@ import Tag from '~/models/Tag'
 import { isEqual } from 'lodash-es/lang'
 import TablerIconConstants from '~/constants/TablerIconConstants'
 import { uniqBy } from 'lodash-es/array.js'
+import LanguageUtils from '~/utils/LanguageUtils.js'
 
 const tagStore = useTagStore()
 const profileStore = useProfileStore()
@@ -76,13 +79,18 @@ const props = defineProps({
   autoSelectParents: {
     default: true,
   },
+  canCreate: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const modelValue = defineModel()
 const showDropdown = ref(false)
 const search = ref('')
+const suggestedSearch = defineModel('suggestedSearch', { type: String, default: null })
 
-const list = ref([])
+const list = computed(() => tagStore.tagListHierarchy)
 const isLoading = ref(false)
 
 const filteredList = computed(() => {
@@ -94,13 +102,28 @@ const filteredList = computed(() => {
   })
 })
 
-// ------ Methods ------
-
-onMounted(async () => {
-  list.value = tagStore.tagListHierarchy
+const createName = computed(() => {
+  if (!props.canCreate) return null
+  let name = search.value.trim()
+  if (!name) return null
+  if (profileStore.lowerCaseTagName) name = name.toLowerCase()
+  if (profileStore.stripAccents) name = LanguageUtils.removeAccents(name)
+  const key = LanguageUtils.removeAccentsAndLowerCase(name)
+  const exists = !!tagStore.tagDictionaryByName[key]
+  return exists ? null : name
 })
 
+watch(
+  () => [showDropdown.value, suggestedSearch.value],
+  ([isOpen, suggestion]) => {
+    if (isOpen && suggestion) search.value = suggestion
+  },
+)
+
+// ------ Methods ------
+
 const onSelectCell = (item) => {
+  suggestedSearch.value = null
   if (props.isMultiSelect) {
     const targetTags = props.autoSelectParents ? Tag.getTagWithParents(item) : [item]
 
@@ -132,6 +155,19 @@ const onRefresh = async () => {
   isLoading.value = false
 }
 
+const isCreating = ref(false)
+const onCreate = async (name) => {
+  if (isCreating.value) return
+  isCreating.value = true
+  const typed = search.value.trim()
+  const newItem = await tagStore.createTag(name)
+  isCreating.value = false
+  if (!newItem) return
+  if (search.value.trim() === typed) search.value = ''
+  onSelectCell(newItem)
+  suggestedSearch.value = null
+}
+
 const isItemSelected = (option) => {
   if (!modelValue.value) {
     return false
@@ -156,4 +192,3 @@ const showGridIcon = computed(() => {
   return showTagSelectAsGrid.value ? 'IconList' : 'IconGridDots'
 })
 </script>
-
