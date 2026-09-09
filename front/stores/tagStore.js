@@ -53,6 +53,7 @@ export const useTagStore = defineStore('tag', () => {
     const response = await new TagRepository().insert(TagTransformer.transformToApi(item))
     if (!ResponseUtils.isSuccess(response)) return null
     const newItem = TagTransformer.transformFromApi(get(response, 'data.data'))
+    if (!newItem) return null
     tagList.value = [newItem, ...tagList.value]
     return newItem
   }

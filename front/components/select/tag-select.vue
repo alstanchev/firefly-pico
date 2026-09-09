@@ -109,7 +109,7 @@ const createName = computed(() => {
   if (profileStore.lowerCaseTagName) name = name.toLowerCase()
   if (profileStore.stripAccents) name = LanguageUtils.removeAccents(name)
   const key = LanguageUtils.removeAccentsAndLowerCase(name)
-  const exists = !!tagStore.tagDictionaryByName[key]
+  const exists = Object.hasOwn(tagStore.tagDictionaryByName, key)
   return exists ? null : name
 })
 
@@ -121,6 +121,11 @@ watch(
 )
 
 // ------ Methods ------
+
+const consumeSuggestion = () => {
+  if (suggestedSearch.value && search.value.trim() === suggestedSearch.value.trim()) search.value = ''
+  suggestedSearch.value = null
+}
 
 const onSelectCell = (item) => {
   if (props.isMultiSelect) {
@@ -136,13 +141,13 @@ const onSelectCell = (item) => {
       // newValue = newValue.filter(value => !isEqual(item, value))
     } else {
       newValue = uniqBy([...newValue, ...targetTags], 'id')
-      suggestedSearch.value = null
+      consumeSuggestion()
     }
     modelValue.value = newValue
   } else {
     modelValue.value = item
     showDropdown.value = false
-    suggestedSearch.value = null
+    consumeSuggestion()
   }
 }
 

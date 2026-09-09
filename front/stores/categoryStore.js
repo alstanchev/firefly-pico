@@ -34,6 +34,7 @@ export const useCategoryStore = defineStore('category', () => {
     const response = await new CategoryRepository().insert(CategoryTransformer.transformToApi(item))
     if (!ResponseUtils.isSuccess(response)) return null
     const newItem = CategoryTransformer.transformFromApi(get(response, 'data.data'))
+    if (!newItem) return null
     categoryList.value = [newItem, ...categoryList.value]
     return newItem
   }

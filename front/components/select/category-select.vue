@@ -104,6 +104,7 @@ watch(
 const onSelectCell = (value) => {
   modelValue.value = value
   showDropdown.value = false
+  if (suggestedSearch.value && search.value.trim() === suggestedSearch.value.trim()) search.value = ''
   suggestedSearch.value = null
 }
 
