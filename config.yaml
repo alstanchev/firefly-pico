@@ -23,5 +23,21 @@ map:
     path: /var/www/html/database/data
 options:
   firefly_url: ""
+  assistant_llm_api_key: ""
+  assistant_llm_endpoint: ""
+  assistant_llm_model: ""
+  assistant_llm_context: ""
+  assistant_transcription_api_key: ""
+  assistant_transcription_endpoint: ""
+  assistant_transcription_model: ""
+  assistant_transcription_language: ""
 schema:
   firefly_url: url
+  assistant_llm_api_key: password?
+  assistant_llm_endpoint: str?
+  assistant_llm_model: str?
+  assistant_llm_context: str?
+  assistant_transcription_api_key: password?
+  assistant_transcription_endpoint: str?
+  assistant_transcription_model: str?
+  assistant_transcription_language: str?

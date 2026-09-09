@@ -1,20 +1,42 @@
 #!/bin/sh
 # Container entrypoint. Runs as root just long enough to:
-#   1. read firefly_url from the Home Assistant add-on options, if present
+#   1. read the Home Assistant add-on options, if present, into the same
+#      environment variables the plain docker image uses
 #   2. make sure the SQLite data dir is writable by www-data
 #   3. hand the log pipes to www-data
 # then drops privileges and runs the regular start.sh.
 # Outside Home Assistant (plain docker / compose) there is no options file,
-# FIREFLY_URL comes from the environment and behaviour matches upstream.
+# the variables come from the environment and behaviour matches upstream.
 set -e
 
 OPTIONS=/data/options.json
 DATA_DIR=/var/www/html/database/data
 
+# Print the named add-on option, or nothing when it is absent or empty.
+addon_option() {
+    php -r 'echo trim((string)(json_decode(file_get_contents($argv[1]))->{$argv[2]} ?? ""));' "$OPTIONS" "$1"
+}
+
+# Export VAR from the add-on option only when the option is set, so an empty
+# option leaves the backend's own defaults (and any env var) untouched.
+export_addon_option() {
+    value="$(addon_option "$2")"
+    if [ -n "$value" ]; then
+        export "$1=$value"
+    fi
+}
+
 if [ -f "$OPTIONS" ]; then
-    FIREFLY_URL="$(php -r 'echo json_decode(file_get_contents($argv[1]))->firefly_url ?? "";' "$OPTIONS")"
-    export FIREFLY_URL
-    echo "Home Assistant add-on mode, FIREFLY_URL=$FIREFLY_URL"
+    export_addon_option FIREFLY_URL firefly_url
+    export_addon_option ASSISTANT_LLM_API_KEY assistant_llm_api_key
+    export_addon_option ASSISTANT_LLM_ENDPOINT assistant_llm_endpoint
+    export_addon_option ASSISTANT_LLM_MODEL assistant_llm_model
+    export_addon_option ASSISTANT_LLM_CONTEXT assistant_llm_context
+    export_addon_option ASSISTANT_TRANSCRIPTION_API_KEY assistant_transcription_api_key
+    export_addon_option ASSISTANT_TRANSCRIPTION_ENDPOINT assistant_transcription_endpoint
+    export_addon_option ASSISTANT_TRANSCRIPTION_MODEL assistant_transcription_model
+    export_addon_option ASSISTANT_TRANSCRIPTION_LANGUAGE assistant_transcription_language
+    echo "Home Assistant add-on mode, FIREFLY_URL=$FIREFLY_URL, assistant LLM key: $([ -n "$ASSISTANT_LLM_API_KEY" ] && echo set || echo not set)"
 fi
 
 if [ -z "$FIREFLY_URL" ]; then
