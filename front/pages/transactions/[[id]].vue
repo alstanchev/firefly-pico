@@ -21,28 +21,30 @@
 
     <transaction-assistant v-if="!itemId && !isCloning" v-model="assistantText" @change="onAssistant" @keyup.enter="saveItem" />
 
-    <transaction-form ref="transactionFormRef" v-model="item" :form-name="formName" :disabled="isViewMode" @submit="saveItem" @failed="onValidationError">
-      <template #actions>
-        <div style="margin: 16px; position: relative">
-          <app-button-form-delete v-if="itemId && !isSplitTransaction" class="mt-10" @click="onDelete" />
+    <div ref="swipeContentRef">
+      <transaction-form ref="transactionFormRef" v-model="item" :form-name="formName" :disabled="isViewMode" @submit="saveItem" @failed="onValidationError">
+        <template #actions>
+          <div style="margin: 16px; position: relative">
+            <app-button-form-delete v-if="itemId && !isSplitTransaction" class="mt-10" @click="onDelete" />
 
-          <div class="display-flex gap-1">
-            <van-button v-if="itemId && !isSplitTransaction" block type="default" class="mt-2 flex-1 cursor-pointer" @click="onCreateClone">
-              <app-icon :icon="TablerIconConstants.clone" />
-              {{ $t('clone') }}
-            </van-button>
+            <div class="display-flex gap-1">
+              <van-button v-if="itemId && !isSplitTransaction" block type="default" class="mt-2 flex-1 cursor-pointer" @click="onCreateClone">
+                <app-icon :icon="TablerIconConstants.clone" />
+                {{ $t('clone') }}
+              </van-button>
 
-            <van-button v-if="itemId && !isSplitTransaction" block type="default" class="mt-2 flex-1 cursor-pointer" @click="onCreateTransactionTemplate">
-              <app-icon :icon="TablerIconConstants.transactionTemplate" />
-              {{ $t('transaction.make_template') }}
-            </van-button>
+              <van-button v-if="itemId && !isSplitTransaction" block type="default" class="mt-2 flex-1 cursor-pointer" @click="onCreateTransactionTemplate">
+                <app-icon :icon="TablerIconConstants.transactionTemplate" />
+                {{ $t('transaction.make_template') }}
+              </van-button>
+            </div>
           </div>
-        </div>
 
-        <app-button-form-save v-if="isViewMode && !isSplitTransaction" :label="$t('edit')" native-type="button" @click="isEditing = true" />
-        <app-button-form-save v-else-if="!isSplitTransaction" />
-      </template>
-    </transaction-form>
+          <app-button-form-save v-if="isViewMode && !isSplitTransaction" :label="$t('edit')" native-type="button" @click="isEditing = true" />
+          <app-button-form-save v-else-if="!isSplitTransaction" />
+        </template>
+      </transaction-form>
+    </div>
 
     <app-card-info v-if="!isSplitTransaction" style="order: 99">
       <app-field-link :label="$t('transaction.configure_fields')" :icon="TablerIconConstants.settings" @click="navigateTo(RouteConstants.ROUTE_SETTINGS_TRANSACTION_FORM_FIELDS)" />
@@ -65,7 +67,7 @@ import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import { useI18n } from '#imports'
 import TransactionForm from '~/components/transaction/TransactionForm.vue'
 import { useTransactionListStore } from '~/stores/transactionListStore.js'
-import { useSwipe } from '@vueuse/core'
+import { useSwipeNavigation } from '~/composables/useSwipeNavigation.js'
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 
 const route = useRoute()
@@ -110,6 +112,7 @@ const isViewMode = computed(() => hasItemId.value && !isCloning.value && !isEdit
 // ----- Previous / next transaction (view mode only), following the order of the transaction list -----
 
 const swipeRef = ref(null)
+const swipeContentRef = ref(null)
 const previousId = computed(() => (isViewMode.value ? transactionListStore.getPreviousId(route.params.id) : null))
 const nextId = computed(() => (isViewMode.value ? transactionListStore.getNextId(route.params.id) : null))
 const hasNeighbourNavigation = computed(() => !!previousId.value || !!nextId.value)
@@ -118,24 +121,20 @@ const navigateToTransaction = async (id) => {
   if (!id) {
     return
   }
-  await navigateTo(`${RouteConstants.ROUTE_TRANSACTION_ID}/${id}`)
+  // Replace instead of push, so the back button still returns to the transaction list
+  await navigateTo(`${RouteConstants.ROUTE_TRANSACTION_ID}/${id}`, { replace: true })
 }
 const onPrevious = () => navigateToTransaction(previousId.value)
 const onNext = () => navigateToTransaction(nextId.value)
 
-const SWIPE_MIN_DISTANCE = 80
-const { lengthX: swipeXDistance } = useSwipe(swipeRef, {
-  threshold: 30,
-  onSwipeEnd(e, direction) {
-    if (!isViewMode.value || Math.abs(swipeXDistance.value) < SWIPE_MIN_DISTANCE) {
-      return
-    }
-    if (direction === 'left') {
-      onNext()
-    } else if (direction === 'right') {
-      onPrevious()
-    }
-  },
+const { animateEnter } = useSwipeNavigation({
+  swipeRef,
+  contentRef: swipeContentRef,
+  isEnabled: isViewMode,
+  hasPrevious: computed(() => !!previousId.value),
+  hasNext: computed(() => !!nextId.value),
+  onPrevious,
+  onNext,
 })
 
 const { t } = useI18n()
@@ -159,8 +158,10 @@ toolbar.init({
 })
 
 onMounted(async () => {
-  animateTransactionForm()
   cloneTransactions()
+  if (!(await animateEnter())) {
+    animateTransactionForm()
+  }
 })
 
 const cloneTransactions = async () => {
