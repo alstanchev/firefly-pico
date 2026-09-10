@@ -112,7 +112,7 @@ const { isLoading, isFinished, isRefreshing, listTotalCount, list, isEmpty, onAd
 })
 
 // Keep the loaded order around so the transaction page can navigate to the previous / next one
-watch(list, (newList) => transactionListStore.setIds(newList.map((item) => item.id)), { immediate: true })
+watch(list, (newList) => transactionListStore.setItems(newList), { immediate: true })
 
 const onShowFilters = () => {
   transactionFiltersRef.value.show()

@@ -12,8 +12,8 @@ export default class BaseRepository {
     return `${appStore.picoBackendURL}/${this.endpoint}`
   }
 
-  async getOne(id) {
-    let result = await axios.get(`${this.getUrl()}/${id}`)
+  async getOne(id, { showLoading = true } = {}) {
+    let result = await axios.get(`${this.getUrl()}/${id}`, { showLoading })
     return get(result, 'data', {})
   }
 

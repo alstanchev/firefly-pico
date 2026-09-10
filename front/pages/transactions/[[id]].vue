@@ -85,6 +85,7 @@ const { itemId, item, saveItem, onDelete, onNew, onValidationError, formName } =
   resetFields: () => {
     assistantText.value = ''
   },
+  seedItem: (id) => transactionListStore.getItem(id),
   onEvent: (event) => {
     if (event === useFormEvent.postSave) {
       isEditing.value = false
