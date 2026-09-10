@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.4-dev2
+
+- View mode of a transaction no longer shows clear marks, chevrons,
+  required-field asterisks or convert buttons, and its pickers stay
+  closed until Edit is pressed.
+- While viewing, swipe left / right to move to the next / previous
+  transaction of the list; the desktop layout gets arrow buttons in the
+  toolbar.
+
 ## 0.2.4-dev1
 
 Development build from the `dev` branch: everything in 0.2.3 rebased on
