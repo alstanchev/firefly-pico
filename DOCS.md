@@ -1,7 +1,7 @@
 # Firefly Pico add-on
 
-Mobile-friendly companion app for Firefly III, built from this fork's source
-on your Home Assistant host. The first install and every update compile the
+Mobile-friendly companion app for Firefly III, built from source on your
+Home Assistant host. The first install and every update compile the
 app locally; expect a few minutes on x86 hardware.
 
 ## Options
@@ -44,8 +44,7 @@ Pico's own SQLite database is stored in the add-on's config folder
 (`/addon_configs/<repo>_firefly_pico`), so it survives updates and is part
 of Home Assistant backups.
 
-## Releasing a new version (for the maintainer)
+## Releasing a new version
 
-Edit `version` in `config.yaml` at the repository root, commit, push.
-Home Assistant shows the update on its next repository refresh and rebuilds
-from the new commit.
+Home Assistant offers an update whenever `version` in `config.yaml` changes
+and rebuilds the add-on from that commit.
