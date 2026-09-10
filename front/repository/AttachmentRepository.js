@@ -11,7 +11,8 @@ export default class AttachmentRepository extends BaseRepository {
 
   async getForTransaction(id) {
     const url = `${useAppStore().picoBackendURL}/api/transactions/${id}/attachments`
-    return await axios.get(url)
+    // The attachments list shows its own spinner, so skip the full-page loading overlay
+    return await axios.get(url, { showLoading: false })
   }
 
   async uploadForTransaction(id, file) {

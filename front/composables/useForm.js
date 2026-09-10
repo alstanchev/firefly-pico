@@ -12,7 +12,8 @@ export const useFormEvent = {
 
 export function useForm(props) {
   const { routeList, routeForm, shouldFetchOnMount = true } = props
-  const { model, resetFields, onEvent, fetchItem: fetchItem_ } = props
+  // seedItem(id) may return an already loaded copy of the item, shown right away while the backend is queried silently
+  const { model, resetFields, onEvent, fetchItem: fetchItem_, seedItem } = props
 
   const transformer = model.getTransformer()
   const repository = model.getRepository()
@@ -45,8 +46,13 @@ export function useForm(props) {
       return
     }
 
+    const seed = seedItem?.(id)
+    if (seed) {
+      item.value = cloneDeep(seed)
+    }
+
     isLoading.value = true
-    let newValue = await repository.getOne(id)
+    let newValue = await repository.getOne(id, { showLoading: !seed })
     newValue = newValue.data
     newValue = transformer ? transformer.transformFromApi(newValue) : newValue
     item.value = newValue
