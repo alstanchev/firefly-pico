@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.4-dev4
+
+- Swiping between transactions in view mode is animated: the form
+  follows the finger and the next transaction slides in.
+- The back arrow on a viewed transaction returns to the transaction list
+  even after swiping through several transactions.
+
 ## 0.2.4-dev3
 
 - Labels and values stay fully legible in the transaction view mode
