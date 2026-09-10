@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4-dev3
+
+- Labels and values stay fully legible in the transaction view mode
+  instead of being greyed out.
+
 ## 0.2.4-dev2
 
 - View mode of a transaction no longer shows clear marks, chevrons,
