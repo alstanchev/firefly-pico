@@ -1,7 +1,7 @@
 <template>
   <div class="">
     <!--    <van-cell :title="label" :value="date" @click="show = true"/>-->
-    <van-field v-model="getSelectedName" is-link readonly class="app-field" :label="label" placeholder="No date" v-bind="dynamicAttrs" @click="onShow">
+    <van-field v-model="getSelectedName" :is-link="!attrs.disabled" readonly class="app-field" :label="label" placeholder="No date" v-bind="dynamicAttrs" @click="onShow">
       <template v-if="attrs.icon" #left-icon>
         <app-icon :icon="attrs.icon" :size="20" />
       </template>

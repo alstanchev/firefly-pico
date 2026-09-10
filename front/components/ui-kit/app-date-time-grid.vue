@@ -1,14 +1,14 @@
 <template>
   <div class="">
     <!--    <van-cell :title="label" :value="date" @click="show = true"/>-->
-    <van-field v-model="getDisplayDate" is-link readonly :clickable="false" class="" left-icon="calendar-o" :label="label ?? $t('date')" placeholder="No date" v-bind="dynamicAttrs">
+    <van-field v-model="getDisplayDate" :is-link="!isDisabled" readonly :clickable="false" class="" left-icon="calendar-o" :label="label ?? $t('date')" placeholder="No date" v-bind="dynamicAttrs">
       <template #left-icon>
         <app-icon :icon="TablerIconConstants.settingsUserPreferencesDate" :size="20" />
       </template>
 
       <template #input>
         <div class="display-flex gap-2 w-100">
-          <div class="fake-input flex-1 cursor-pointer" @click.stop="showDatePicker = true">
+          <div class="fake-input flex-1 cursor-pointer" @click.stop="onShowDatePicker">
             <div :class="labelDateClass">
               <div class="day-of-week">{{ dayOfWeek }}</div>
               {{ getDisplayDate }}
@@ -67,6 +67,15 @@ const maxDate = addYears(new Date(), 1)
 
 const timeInput = ref(null)
 
+const isDisabled = computed(() => !!attrs.disabled)
+
+const onShowDatePicker = () => {
+  if (isDisabled.value) {
+    return
+  }
+  showDatePicker.value = true
+}
+
 const labelDateClass = computed(() => {
   return {
     'flex-center-vertical gap-1': true,
@@ -97,6 +106,9 @@ const onConfirmDate = (value) => {
 // ------
 
 const onShowTimePicker = () => {
+  if (isDisabled.value) {
+    return
+  }
   const hasBrowserTimePicker = useDevice().isMobileOrTablet
   if (hasBrowserTimePicker) {
     timeInput.value?.focus()

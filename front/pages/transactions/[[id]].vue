@@ -1,8 +1,19 @@
 <template>
-  <div class="app-form">
+  <div ref="swipeRef" class="app-form">
     <app-top-toolbar>
       <template #right>
-        <app-button-list-add v-if="itemId" @click="onNew" />
+        <div class="flex-center-vertical gap-1">
+          <template v-if="hasNeighbourNavigation && appStore.isDesktopLayout">
+            <van-button size="small" class="cursor-pointer" :disabled="!previousId" @click="onPrevious">
+              <icon-chevron-left :size="16" :stroke="1.9" />
+            </van-button>
+            <van-button size="small" class="cursor-pointer" :disabled="!nextId" @click="onNext">
+              <icon-chevron-right :size="16" :stroke="1.9" />
+            </van-button>
+          </template>
+
+          <app-button-list-add v-if="itemId" @click="onNew" />
+        </div>
       </template>
     </app-top-toolbar>
 
@@ -53,8 +64,13 @@ import TransactionRepository from '~/repository/TransactionRepository.js'
 import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import { useI18n } from '#imports'
 import TransactionForm from '~/components/transaction/TransactionForm.vue'
+import { useTransactionListStore } from '~/stores/transactionListStore.js'
+import { useSwipe } from '@vueuse/core'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 
 const route = useRoute()
+const appStore = useAppStore()
+const transactionListStore = useTransactionListStore()
 
 const assistantText = ref('')
 const transactionFormRef = ref(null)
@@ -90,6 +106,37 @@ const isSplitTransaction = computed(() => Transaction.isSplitPayment(item.value)
 // route.params.id is available before the fetch resolves, so an existing transaction never flashes as an enabled "add" form
 const hasItemId = computed(() => !!itemId.value || !!route.params.id)
 const isViewMode = computed(() => hasItemId.value && !isCloning.value && !isEditing.value)
+
+// ----- Previous / next transaction (view mode only), following the order of the transaction list -----
+
+const swipeRef = ref(null)
+const previousId = computed(() => (isViewMode.value ? transactionListStore.getPreviousId(route.params.id) : null))
+const nextId = computed(() => (isViewMode.value ? transactionListStore.getNextId(route.params.id) : null))
+const hasNeighbourNavigation = computed(() => !!previousId.value || !!nextId.value)
+
+const navigateToTransaction = async (id) => {
+  if (!id) {
+    return
+  }
+  await navigateTo(`${RouteConstants.ROUTE_TRANSACTION_ID}/${id}`)
+}
+const onPrevious = () => navigateToTransaction(previousId.value)
+const onNext = () => navigateToTransaction(nextId.value)
+
+const SWIPE_MIN_DISTANCE = 80
+const { lengthX: swipeXDistance } = useSwipe(swipeRef, {
+  threshold: 30,
+  onSwipeEnd(e, direction) {
+    if (!isViewMode.value || Math.abs(swipeXDistance.value) < SWIPE_MIN_DISTANCE) {
+      return
+    }
+    if (direction === 'left') {
+      onNext()
+    } else if (direction === 'right') {
+      onPrevious()
+    }
+  },
+})
 
 const { t } = useI18n()
 const title = computed(() => {

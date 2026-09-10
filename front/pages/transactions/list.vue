@@ -79,8 +79,10 @@ import { IconChevronDown, IconChevronUp, IconSquareRoundedX, IconSettings } from
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
 import { filterBagHasValues, getFiltersFromURL, saveToUrl } from '~/utils/FilterUtils.js'
 import { useListFilters } from '~/composables/useListFilters.js'
+import { useTransactionListStore } from '~/stores/transactionListStore.js'
 
 const appStore = useAppStore()
+const transactionListStore = useTransactionListStore()
 
 const listScroller = computed(() => (appStore.isDesktopLayout ? window : undefined))
 
@@ -108,6 +110,9 @@ const { isLoading, isFinished, isRefreshing, listTotalCount, list, isEmpty, onAd
   model: new Transaction(),
   getAll: onCustomGetAll,
 })
+
+// Keep the loaded order around so the transaction page can navigate to the previous / next one
+watch(list, (newList) => transactionListStore.setIds(newList.map((item) => item.id)), { immediate: true })
 
 const onShowFilters = () => {
   transactionFiltersRef.value.show()
