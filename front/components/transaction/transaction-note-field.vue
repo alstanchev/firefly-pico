@@ -24,12 +24,19 @@ import { IconEye } from '@tabler/icons-vue'
 import { marked } from 'marked'
 
 const modelValue = defineModel()
+const props = defineProps({
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+})
 const isFocused = ref(false)
 const isPreviewVisible = ref(false)
 
 const modelValueCustom = computed({
   get() {
-    return isFocused.value ? modelValue.value : modelValueSummary.value
+    // A disabled textarea can never be focused, so show the full note instead of the truncated summary
+    return isFocused.value || props.disabled ? modelValue.value : modelValueSummary.value
   },
   set(value) {
     modelValue.value = value
