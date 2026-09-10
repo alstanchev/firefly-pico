@@ -25,7 +25,7 @@
               @focus="onFocus"
               @blur="onBlur"
             >
-            <van-button v-if="isConvertButtonVisible" size="small" class="" @click="convertAmountToForeign">
+            <van-button v-if="isConvertButtonVisible && !disabled" size="small" class="" @click="convertAmountToForeign">
               <template #icon>
                 <div class="display-flex">
                   <app-icon :icon="TablerIconConstants.transaction" :size="16" />
@@ -64,7 +64,7 @@
             <div class="flex-center-vertical gap-1 w-100">
               <input ref="inputAmountForeign" v-model="amountForeign" style="width: 100%; border: none; background: transparent; height: 24px" type="text" inputmode="decimal" :disabled="disabled" >
 
-              <van-button v-if="isConvertButtonVisible" size="small" class="" @click="convertForeignToAmount">
+              <van-button v-if="isConvertButtonVisible && !disabled" size="small" class="" @click="convertForeignToAmount">
                 <template #icon>
                   <div class="display-flex">
                     <app-icon :icon="TablerIconConstants.transaction" :size="16" />

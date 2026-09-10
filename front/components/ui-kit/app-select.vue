@@ -1,6 +1,15 @@
 <template>
   <div class="van-cell-fake cursor-pointer">
-    <van-field :model-value="modelValueDisplayName" :class="fieldClass" :label="label" :placeholder="props.placeholder" v-bind="dynamicAttrs" is-link readonly @click.stop="onShowDropdown">
+    <van-field
+      :model-value="modelValueDisplayName"
+      :class="fieldClass"
+      :label="label"
+      :placeholder="props.placeholder"
+      v-bind="dynamicAttrs"
+      :is-link="!isDisabled"
+      readonly
+      @click.stop="onShowDropdown"
+    >
       <template v-for="slot in Object.keys($slots)" #[slot]="scoped">
         <slot :name="slot" v-bind="scoped ?? {}" />
       </template>
@@ -152,7 +161,9 @@ const props = defineProps({
 const attrs = useAttrs()
 const { dynamicAttrs } = useFormAttributes(attrs)
 
-const isClearable = computed(() => !('clearable' in attrs) || get(attrs, 'clearable'))
+// Vant's form-level "disabled" never reaches this wrapper, so parents pass "disabled" explicitly
+const isDisabled = computed(() => !!attrs.disabled)
+const isClearable = computed(() => !isDisabled.value && (!('clearable' in attrs) || get(attrs, 'clearable')))
 
 const fieldClass = computed(() => {
   return {
@@ -223,7 +234,7 @@ const onClear = () => {
 }
 
 const onShowDropdown = () => {
-  if (attrs.disabled) {
+  if (isDisabled.value) {
     return
   }
   showDropdown.value = true

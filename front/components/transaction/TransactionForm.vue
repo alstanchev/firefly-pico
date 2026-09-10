@@ -3,7 +3,16 @@
 
   <transaction-type-tabs v-if="!isSplitTransaction" v-model="type" class="mx-3 mt-1 mb-1" :class="{ 'pointer-events-none': isFormDisabled }" />
 
-  <van-form v-if="!isSplitTransaction" ref="formRef" :disabled="isFormDisabled" :name="props.formName" class="transaction-form-group" @submit="emit('submit')" @failed="emit('failed', $event)">
+  <van-form
+    v-if="!isSplitTransaction"
+    ref="formRef"
+    :disabled="isFormDisabled"
+    :name="props.formName"
+    class="transaction-form-group"
+    :class="{ 'transaction-form-readonly': isFormDisabled }"
+    @submit="emit('submit')"
+    @failed="emit('failed', $event)"
+  >
     <van-cell-group inset class="dynamic-masonry display-flex-column">
       <transaction-amount-field
         v-model:amount="amount"
@@ -21,6 +30,7 @@
         v-model="accountSource"
         :label="$t('transaction.source_account')"
         :allowed-types="accountSourceAllowedTypes"
+        :disabled="isFormDisabled"
         :style="getStyleForField(transactionFormField.sourceAccount)"
         v-bind="accountSourceBinding"
       >
@@ -38,6 +48,7 @@
         v-model="accountDestination"
         :label="$t('transaction.destination_account')"
         :allowed-types="accountDestinationAllowedTypes"
+        :disabled="isFormDisabled"
         :style="getStyleForField(transactionFormField.destinationAccount)"
         v-bind="accountDestinationBinding"
       />
@@ -47,6 +58,7 @@
         v-model="category"
         v-model:suggested-search="categorySuggestion"
         :can-create="true"
+        :disabled="isFormDisabled"
         :style="getStyleForField(transactionFormField.category)"
       />
 
@@ -64,10 +76,17 @@
         :style="getStyleForField(transactionFormField.description)"
       />
 
-      <tag-select v-if="profileStore.tagsEnabled" v-model="tags" v-model:suggested-search="tagSuggestion" :can-create="true" :style="getStyleForField(transactionFormField.tags)" />
+      <tag-select
+        v-if="profileStore.tagsEnabled"
+        v-model="tags"
+        v-model:suggested-search="tagSuggestion"
+        :can-create="true"
+        :disabled="isFormDisabled"
+        :style="getStyleForField(transactionFormField.tags)"
+      />
 
       <div :style="getStyleForField(transactionFormField.date)">
-        <app-date-time-grid v-model="date" name="date" :rules="[rule.required()]" required />
+        <app-date-time-grid v-model="date" name="date" :rules="[rule.required()]" required :disabled="isFormDisabled" />
 
         <div v-if="!isFormDisabled" class="px-3 flex-center-vertical gap-1">
           <van-button size="small" class="cursor-pointer" @click="onSubDay">{{ $t('sub_day') }}</van-button>
@@ -82,12 +101,13 @@
         v-model="extraDates[extraDateField.code].value"
         :label="$t(extraDateField.t)"
         :icon="extraDateField.icon"
+        :disabled="isFormDisabled"
         :style="getStyleForField(extraDateField)"
       />
 
       <transaction-note-field v-model="notes" :disabled="isFormDisabled" :style="getStyleForField(transactionFormField.notes)" />
 
-      <budget-select v-if="profileStore.budgetsEnabled" v-model="budget" :style="getStyleForField(transactionFormField.budget)" />
+      <budget-select v-if="profileStore.budgetsEnabled" v-model="budget" :disabled="isFormDisabled" :style="getStyleForField(transactionFormField.budget)" />
 
       <piggy-bank-select v-if="profileStore.piggyBanksEnabled && isTypeTransfer && !itemId" v-model="piggyBank" :style="getStyleForField(transactionFormField.piggyBank)" />
 
@@ -181,3 +201,10 @@ defineExpose({
   isSplitTransaction,
 })
 </script>
+
+<style>
+/* Required marks only make sense when the form can be submitted (the theme draws the mark with ::after) */
+.transaction-form-readonly .van-field__label--required::after {
+  display: none;
+}
+</style>
