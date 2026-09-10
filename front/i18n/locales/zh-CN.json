@@ -7,6 +7,7 @@
   "success": "成功",
   "search_placeholder": "搜索...",
   "clone": "克隆",
+  "edit": "编辑",
   "not_set": "未设置",
   "loading": "加载中...",
   "items": "项目",
@@ -126,6 +127,7 @@
     "configure_fields": "配置字段",
     "title_clone_transaction": "克隆交易",
     "title_edit_transaction": "编辑交易",
+    "title_view_transaction": "查看交易",
     "title_add_transaction": "添加交易"
   },
   "settings": {

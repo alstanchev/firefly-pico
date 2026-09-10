@@ -9,6 +9,7 @@
   "success": "Успешно",
   "search_placeholder": "Поиск...",
   "clone": "Клонировать",
+  "edit": "Редактировать",
   "not_set": "Не задано",
   "loading": "Загрузка...",
   "items": "элементов",
@@ -133,6 +134,7 @@
     "configure_fields": "Настроить поля",
     "title_clone_transaction": "Клонировать транзакцию",
     "title_edit_transaction": "Редактировать транзакцию",
+    "title_view_transaction": "Просмотр транзакции",
     "title_add_transaction": "Добавить транзакцию"
   },
   "settings": {

@@ -18,6 +18,10 @@ import AttachmentRepository from '~/repository/AttachmentRepository.js'
 
 const props = defineProps({
   value: {},
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emits = defineEmits(['result', 'isLoading'])
@@ -41,6 +45,9 @@ const tapBinding = useTap(async (event) => {
       break
     case useTapEvent.double:
     case useTapEvent.long:
+      if (props.disabled) {
+        break
+      }
       useActionSheet().show([
         {
           name: t('delete'),

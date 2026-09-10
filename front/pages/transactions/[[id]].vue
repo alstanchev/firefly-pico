@@ -10,7 +10,7 @@
 
     <transaction-assistant v-if="!itemId && !isCloning" v-model="assistantText" @change="onAssistant" @keyup.enter="saveItem" />
 
-    <transaction-form ref="transactionFormRef" v-model="item" :form-name="formName" @submit="saveItem" @failed="onValidationError">
+    <transaction-form ref="transactionFormRef" v-model="item" :form-name="formName" :disabled="isViewMode" @submit="saveItem" @failed="onValidationError">
       <template #actions="{ isSplitTransaction }">
         <div style="margin: 16px; position: relative">
           <app-button-form-delete v-if="itemId && !isSplitTransaction" class="mt-10" @click="onDelete" />
@@ -28,7 +28,8 @@
           </div>
         </div>
 
-        <app-button-form-save v-if="!isSplitTransaction" />
+        <app-button-form-save v-if="isViewMode && !isSplitTransaction" :label="$t('edit')" native-type="button" @click="isEditing = true" />
+        <app-button-form-save v-else-if="!isSplitTransaction" />
       </template>
     </transaction-form>
 
@@ -43,7 +44,7 @@ import RouteConstants from '~/constants/RouteConstants'
 
 import { get } from 'lodash-es'
 import { ref } from 'vue'
-import { useForm } from '~/composables/useForm'
+import { useForm, useFormEvent } from '~/composables/useForm'
 import Transaction from '~/models/Transaction'
 import { useToolbar } from '~/composables/useToolbar'
 import TablerIconConstants from '~/constants/TablerIconConstants'
@@ -57,6 +58,7 @@ const route = useRoute()
 
 const assistantText = ref('')
 const transactionFormRef = ref(null)
+const isEditing = ref(false)
 
 const { itemId, item, saveItem, onDelete, onNew, onValidationError, formName } = useForm({
   routeList: RouteConstants.ROUTE_TRANSACTION_LIST,
@@ -64,6 +66,11 @@ const { itemId, item, saveItem, onDelete, onNew, onValidationError, formName } =
   model: new Transaction(),
   resetFields: () => {
     assistantText.value = ''
+  },
+  onEvent: (event) => {
+    if (event === useFormEvent.postSave) {
+      isEditing.value = false
+    }
   },
 })
 
@@ -79,10 +86,19 @@ const onCreateClone = async () => {
 }
 
 const isCloning = computed(() => !!get(route.query, 'transaction_id'))
+// route.params.id is available before the fetch resolves, so an existing transaction never flashes as an enabled "add" form
+const hasItemId = computed(() => !!itemId.value || !!route.params.id)
+const isViewMode = computed(() => hasItemId.value && !isCloning.value && !isEditing.value)
 
 const { t } = useI18n()
 const title = computed(() => {
-  return isCloning.value ? t('transaction.title_clone_transaction') : itemId.value ? t('transaction.title_edit_transaction') : t('transaction.title_add_transaction')
+  if (isCloning.value) {
+    return t('transaction.title_clone_transaction')
+  }
+  if (!hasItemId.value) {
+    return t('transaction.title_add_transaction')
+  }
+  return isEditing.value ? t('transaction.title_edit_transaction') : t('transaction.title_view_transaction')
 })
 
 const toolbar = useToolbar()

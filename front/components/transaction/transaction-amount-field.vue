@@ -20,6 +20,7 @@
               style="width: 100%; border: none; background: transparent; height: 24px"
               type="text"
               inputmode="decimal"
+              :disabled="disabled"
               class="transaction-amount-field-input"
               @focus="onFocus"
               @blur="onBlur"
@@ -61,7 +62,7 @@
 
           <template #input>
             <div class="flex-center-vertical gap-1 w-100">
-              <input ref="inputAmountForeign" v-model="amountForeign" style="width: 100%; border: none; background: transparent; height: 24px" type="text" inputmode="decimal" >
+              <input ref="inputAmountForeign" v-model="amountForeign" style="width: 100%; border: none; background: transparent; height: 24px" type="text" inputmode="decimal" :disabled="disabled" >
 
               <van-button v-if="isConvertButtonVisible" size="small" class="" @click="convertForeignToAmount">
                 <template #icon>

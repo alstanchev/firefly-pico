@@ -9,6 +9,7 @@
   "success": "Succes",
   "search_placeholder": "Recherche...",
   "clone": "Dupliquer",
+  "edit": "Modifier",
   "not_set": "Pas définie",
   "loading": "Chargement...",
   "items": "Elements",
@@ -133,6 +134,7 @@
     "configure_fields": "Configuration des champs",
     "title_clone_transaction": "Dupliquer la transaction",
     "title_edit_transaction": "Editer la transaction",
+    "title_view_transaction": "Voir la transaction",
     "title_add_transaction": "Ajouter une transaction"
   },
   "settings": {
