@@ -207,4 +207,13 @@ defineExpose({
 .transaction-form-readonly .van-field__label--required::after {
   display: none;
 }
+
+/* Read-only is not "disabled": keep labels and values fully legible */
+.transaction-form-readonly .van-field--disabled .van-field__label {
+  color: var(--van-field-label-color);
+}
+.transaction-form-readonly .van-field__control:disabled {
+  color: var(--van-field-input-text-color);
+  -webkit-text-fill-color: var(--van-field-input-text-color);
+}
 </style>
