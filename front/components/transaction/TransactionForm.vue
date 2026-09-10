@@ -1,7 +1,7 @@
 <template>
   <transaction-split-view v-if="isSplitTransaction" :transaction="item" />
 
-  <transaction-type-tabs v-if="!isSplitTransaction" v-model="type" class="mx-3 mt-1 mb-1" />
+  <transaction-type-tabs v-if="!isSplitTransaction" v-model="type" class="mx-3 mt-1 mb-1" :class="{ 'pointer-events-none': isFormDisabled }" />
 
   <van-form v-if="!isSplitTransaction" ref="formRef" :disabled="isFormDisabled" :name="props.formName" class="transaction-form-group" @submit="emit('submit')" @failed="emit('failed', $event)">
     <van-cell-group inset class="dynamic-masonry display-flex-column">
@@ -13,7 +13,7 @@
         :is-foreign-amount-visible="isForeignAmountVisible"
         name="amount"
         :style="getStyleForField(transactionFormField.amount)"
-        :disabled="isSplitTransaction"
+        :disabled="isFormDisabled"
         :is-amount-required="true"
       />
 
@@ -69,7 +69,7 @@
       <div :style="getStyleForField(transactionFormField.date)">
         <app-date-time-grid v-model="date" name="date" :rules="[rule.required()]" required />
 
-        <div v-if="!isSplitTransaction" class="px-3 flex-center-vertical gap-1">
+        <div v-if="!isFormDisabled" class="px-3 flex-center-vertical gap-1">
           <van-button size="small" class="cursor-pointer" @click="onSubDay">{{ $t('sub_day') }}</van-button>
           <van-button size="small" class="cursor-pointer" @click="onToday">{{ $t('today') }}</van-button>
           <van-button size="small" class="cursor-pointer" @click="onAddDay">{{ $t('add_day') }}</van-button>
@@ -85,13 +85,13 @@
         :style="getStyleForField(extraDateField)"
       />
 
-      <transaction-note-field v-model="notes" :style="getStyleForField(transactionFormField.notes)" />
+      <transaction-note-field v-model="notes" :disabled="isFormDisabled" :style="getStyleForField(transactionFormField.notes)" />
 
       <budget-select v-if="profileStore.budgetsEnabled" v-model="budget" :style="getStyleForField(transactionFormField.budget)" />
 
       <piggy-bank-select v-if="profileStore.piggyBanksEnabled && isTypeTransfer && !itemId" v-model="piggyBank" :style="getStyleForField(transactionFormField.piggyBank)" />
 
-      <transaction-attachments-list :transaction="item" :style="getStyleForField(transactionFormField.attachments)" />
+      <transaction-attachments-list :transaction="item" :read-only="props.disabled" :style="getStyleForField(transactionFormField.attachments)" />
     </van-cell-group>
 
     <slot name="actions" :is-split-transaction="isSplitTransaction" :is-type-transfer="isTypeTransfer" />

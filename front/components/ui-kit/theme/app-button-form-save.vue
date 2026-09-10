@@ -1,7 +1,7 @@
 <template>
   <div :class="classComputed" :style="style">
     <slot name="left"/>
-    <van-button round type="primary" native-type="submit" class="flex-1 shadow-depth2 cursor-pointer">
+    <van-button round type="primary" :native-type="nativeType" class="flex-1 shadow-depth2 cursor-pointer">
       {{ label ?? $t('save') }}
     </van-button>
     <slot name="right" />
@@ -14,6 +14,9 @@ const appStore = useAppStore()
 
 const props = defineProps({
   label: {},
+  nativeType: {
+    default: 'submit',
+  },
   bottom: {
     default: '+ 20px',
   },

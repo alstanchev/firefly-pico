@@ -9,6 +9,7 @@
   "success": "Sucess",
   "search_placeholder": "Caută...",
   "clone": "Clonează",
+  "edit": "Editează",
   "not_set": "Nesetat",
   "loading": "Se încarcă...",
   "items": "elemente",
@@ -138,6 +139,7 @@
     "configure_fields": "Configurează câmpuri",
     "title_clone_transaction": "Clonează tranzacția",
     "title_edit_transaction": "Editează tranzacția",
+    "title_view_transaction": "Vezi tranzacția",
     "title_add_transaction": "Adaugă tranzacție"
   },
   "settings": {

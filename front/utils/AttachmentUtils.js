@@ -1,6 +1,5 @@
-import * as basicLightbox from 'basiclightbox'
 import axios from 'axios'
-import 'basiclightbox/dist/basicLightbox.min.css'
+import { showImagePreview } from 'vant'
 import { get } from 'lodash-es'
 import { blobToJson } from '~/utils/DataUtils.js'
 
@@ -39,8 +38,7 @@ export const showImageFromUrl = async (url) => {
     return
   }
   const blobUrl = URL.createObjectURL(attachment)
-  const instance = basicLightbox.create(`<img src="${blobUrl}" style="max-width: 100vw; max-height: 100vh;" />`)
-  instance.show()
+  showImagePreview({ images: [blobUrl], closeable: true, onClose: () => URL.revokeObjectURL(blobUrl) })
 }
 
 export const downloadFileFromUrl = async (url, filename) => {
