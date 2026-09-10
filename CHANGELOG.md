@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3
+
+- Opening an existing transaction now shows it read-only, with an Edit
+  button to unlock the form. Saving returns it to view mode.
+- Receipt images open in a full-screen preview with pinch-to-zoom
+  instead of downloading.
+- Split transactions no longer offer an Edit button that leads to a
+  disabled form.
+- Attachments can't be uploaded or deleted while a transaction is in
+  view mode, and long notes are shown in full instead of truncated.
+
 ## 0.2.2
 
 - Category and tag pickers on the transaction form can create a new
