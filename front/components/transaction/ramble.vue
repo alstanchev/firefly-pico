@@ -46,7 +46,10 @@
             :is-deleting-saved="isDeletingLoadedSavedRambles"
             :is-interpreting="isInterpreting"
             :is-disabled="isRambleFormDisabled"
+            :is-preparing-receipts="isPreparingReceipts"
+            :max-receipts="maxReceipts"
             @interpret="interpretRambleText"
+            @add-receipt="receiptInputRef?.click()"
             @load-saved="fetchSavedRambles"
             @delete-saved="deleteLoadedSavedRambles"
             @delete-ramble="deleteSavedRamble"
@@ -486,13 +489,13 @@ const onRambleTransactionEdited = (editedTransaction) => {
 }
 
 const getReceiptsForTransaction = (transaction, receipts) => {
-  const receiptIndex = transaction.assistant?.raw?.receiptIndex
-  if (Number.isInteger(receiptIndex) && receipts[receiptIndex]) {
-    return [receipts[receiptIndex]]
+  const matched = (transaction.assistant?.raw?.receiptIndexes ?? []).map((index) => receipts[index]).filter(Boolean)
+  if (matched.length > 0) {
+    return matched
   }
 
-  // Without a usable index, the fallback covers only the unambiguous one-photo, one-draft case.
-  return receipts.length === 1 && rambleTransactions.value.length === 1 ? receipts : []
+  // Without usable indexes, the fallback covers only the unambiguous single-draft case, where every photo belongs to it.
+  return rambleTransactions.value.length === 1 ? receipts : []
 }
 
 const attachReceipts = async (transaction, receipts) => {

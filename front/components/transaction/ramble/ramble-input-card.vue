@@ -28,6 +28,19 @@
         <div class="flex-1" />
 
         <van-button
+          v-if="receipts.length < maxReceipts"
+          round
+          size="small"
+          class="cursor-pointer ramble-icon-button"
+          :loading="isPreparingReceipts"
+          :disabled="isDisabled"
+          :title="$t('transaction.assistant_ramble_scan_receipt')"
+          @click="emit('addReceipt')"
+        >
+          <app-icon :icon="TablerIconConstants.camera" :size="16" />
+        </van-button>
+
+        <van-button
           v-if="appStore.isDesktopLayout"
           round
           size="small"
@@ -134,9 +147,17 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isPreparingReceipts: {
+    type: Boolean,
+    default: false,
+  },
+  maxReceipts: {
+    type: Number,
+    default: 0,
+  },
 })
 
-const emit = defineEmits(['interpret', 'loadSaved', 'deleteSaved', 'deleteRamble'])
+const emit = defineEmits(['interpret', 'loadSaved', 'deleteSaved', 'deleteRamble', 'addReceipt'])
 const rambleText = defineModel({ type: String, default: '' })
 const receipts = defineModel('receipts', { type: Array, default: () => [] })
 const profileStore = useProfileStore()
