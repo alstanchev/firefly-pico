@@ -2,7 +2,7 @@
 # own Dockerfile on the Home Assistant host; there is no prebuilt image.
 # Bump "version" to make Home Assistant offer an update and rebuild.
 name: Firefly Pico
-version: "0.2.4-dev4"
+version: "0.2.4-dev5"
 slug: firefly_pico
 description: Firefly III companion app for quick transaction entry (fork)
 url: https://github.com/alstanchev/firefly-pico

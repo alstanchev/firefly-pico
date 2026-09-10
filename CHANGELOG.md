@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4-dev5
+
+- Opening or swiping to a transaction from the list shows it instantly
+  from the already loaded data, refreshing from the backend silently.
+
 ## 0.2.4-dev4
 
 - Swiping between transactions in view mode is animated: the form
