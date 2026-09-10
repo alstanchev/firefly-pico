@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.4-dev1
+
+Development build from the `dev` branch: everything in 0.2.3 rebased on
+the latest upstream Firefly Pico, which brings:
+
+- Virtual balances are shown for accounts that define one.
+- Split transactions display all of their parts in full.
+- Amounts are formatted while typing in the amount input.
+- Markdown notes have better contrast in the dark theme.
+- The account selector no longer loses its value after a background
+  sync, and select options update reactively.
+- The transaction list count is correct when splits are used.
+- The web server port inside the container can be changed with
+  `NGINX_PORT` (not needed for the add-on, which keeps port 80).
+
 ## 0.2.3
 
 - Opening an existing transaction now shows it read-only, with an Edit
