@@ -104,20 +104,16 @@
 </template>
 
 <script setup>
-import { cloneDeep, get } from 'lodash-es'
+import { cloneDeep } from 'lodash-es'
 import { computed, onMounted, ref, watch } from 'vue'
 import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
 import AssistantRepository from '~/repository/AssistantRepository.js'
-import AttachmentRepository from '~/repository/AttachmentRepository.js'
 import RambleInputCard from '~/components/transaction/ramble/ramble-input-card.vue'
 import RambleTransactionItem from '~/components/transaction/ramble/ramble-transaction-item.vue'
 import RambleTransactionEditPopup from '~/components/transaction/ramble/ramble-transaction-edit-popup.vue'
-import { useRambleTransactionResolver } from '~/composables/useRambleTransactionResolver.js'
+import { useRambleDrafts, draftStatus } from '~/composables/useRambleDrafts.js'
 import { useSwipeToDismiss } from '~/composables/useSwipeToDismiss'
-import { useTransactionAssistantDraft } from '~/composables/useTransactionAssistantDraft.js'
-import TransactionRepository from '~/repository/TransactionRepository.js'
-import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import UIUtils from '~/utils/UIUtils.js'
 import { compressImageToJpeg, blobToDataUrl } from '~/utils/ImageUtils.js'
 import { getGUID } from '~/utils/Utils.js'
@@ -130,19 +126,25 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
-const profileStore = useProfileStore()
 const appStore = useAppStore()
 const assistantRepository = new AssistantRepository()
-const transactionRepository = new TransactionRepository()
-const { getRambleContext, resolveRambleTransaction } = useRambleTransactionResolver()
-const { buildTransactionItemFromAssistant } = useTransactionAssistantDraft()
-
-const createStatus = {
-  pending: 'pending',
-  creating: 'creating',
-  success: 'success',
-  error: 'error',
-}
+const {
+  drafts: rambleTransactions,
+  isInterpreting,
+  isCreating: isCreatingRambleTransactions,
+  hasInterpreted,
+  error: rambleError,
+  hasCreateProgress,
+  createProgressPercentage,
+  createProgressLabel,
+  createButtonLabel,
+  createButtonCount,
+  interpret,
+  create,
+  removeDraft: removeRambleTransaction,
+  applyEditedDraft,
+  reset: resetDrafts,
+} = useRambleDrafts()
 
 const showRamblePopup = ref(false)
 const showRambleTransactionPopup = ref(false)
@@ -153,12 +155,6 @@ const loadedSavedRambleIds = ref([])
 const savedRamblesCount = ref(0)
 const isLoadingSavedRambles = ref(false)
 const isDeletingLoadedSavedRambles = ref(false)
-const rambleTransactions = ref([])
-const isInterpreting = ref(false)
-const isCreatingRambleTransactions = ref(false)
-const hasInterpreted = ref(false)
-const rambleError = ref('')
-const currentCreateIndex = ref(0)
 const editingRambleTransaction = ref(null)
 const inputCardRef = ref(null)
 const popupRef = ref(null)
@@ -181,51 +177,8 @@ const ramblePopupStyle = computed(() => {
   return { height: '90%' }
 })
 
-const hasLoadedSavedRambles = computed(() => {
-  return loadedSavedRambleIds.value.length > 0
-})
-
-const createdRambleTransactionsCount = computed(() => rambleTransactions.value.filter((transaction) => transaction.status === createStatus.success).length)
-const failedRambleTransactionsCount = computed(() => rambleTransactions.value.filter((transaction) => transaction.status === createStatus.error).length)
-const processedRambleTransactionsCount = computed(() => createdRambleTransactionsCount.value + failedRambleTransactionsCount.value)
-const createButtonCount = computed(() => rambleTransactions.value.filter((transaction) => transaction.status !== createStatus.success).length)
-const hasCreateProgress = computed(() => isCreatingRambleTransactions.value || processedRambleTransactionsCount.value > 0)
+const hasLoadedSavedRambles = computed(() => loadedSavedRambleIds.value.length > 0)
 const isRambleFormDisabled = computed(() => isInterpreting.value)
-const createProgressPercentage = computed(() => {
-  if (rambleTransactions.value.length === 0) {
-    return 0
-  }
-
-  return Math.round((processedRambleTransactionsCount.value / rambleTransactions.value.length) * 100)
-})
-const createProgressLabel = computed(() => {
-  if (isCreatingRambleTransactions.value) {
-    return t('transaction.assistant_ramble_progress_creating', {
-      current: currentCreateIndex.value,
-      total: rambleTransactions.value.length,
-    })
-  }
-
-  if (failedRambleTransactionsCount.value > 0) {
-    return t('transaction.assistant_ramble_progress_failed', {
-      created: createdRambleTransactionsCount.value,
-      total: rambleTransactions.value.length,
-      failed: failedRambleTransactionsCount.value,
-    })
-  }
-
-  return t('transaction.assistant_ramble_progress', {
-    created: createdRambleTransactionsCount.value,
-    total: rambleTransactions.value.length,
-  })
-})
-const createButtonLabel = computed(() => {
-  if (failedRambleTransactionsCount.value > 0) {
-    return t('transaction.assistant_ramble_retry_failed', { count: createButtonCount.value })
-  }
-
-  return t('transaction.assistant_ramble_create', { count: createButtonCount.value })
-})
 
 const isResponseSuccessful = (response) => {
   return response?.status >= 200 && response?.status < 300
@@ -362,111 +315,19 @@ const resetRamble = () => {
   rambleReceipts.value = []
   savedRambles.value = []
   loadedSavedRambleIds.value = []
-  rambleTransactions.value = []
   isLoadingSavedRambles.value = false
   isDeletingLoadedSavedRambles.value = false
-  isInterpreting.value = false
-  isCreatingRambleTransactions.value = false
-  hasInterpreted.value = false
-  rambleError.value = ''
-  currentCreateIndex.value = 0
   showRambleTransactionPopup.value = false
   editingRambleTransaction.value = null
+  resetDrafts()
 }
 
-const getRambleErrorMessage = (error) => {
-  return error?.response?.data?.error?.message ?? error?.response?.data?.message ?? error?.message ?? 'Assistant LLM request failed.'
-}
-
-const getTransactionCreateErrorMessage = (error) => {
-  return (
-    error?.data?.payload?.message ??
-    error?.response?.data?.payload?.message ??
-    error?.response?.data?.message ??
-    error?.response?.data?.error?.message ??
-    error?.data?.message ??
-    error?.message ??
-    'Failed to create transaction.'
-  )
-}
-
-const getInterpretationText = () => {
-  const savedRamblesText = savedRambles.value
-    .map((ramble) => ramble.text?.trim())
-    .filter(Boolean)
-    .join('\n')
-
-  return [rambleText.value.trim(), savedRamblesText].filter(Boolean).join('\n')
-}
-
-const interpretRambleText = async () => {
-  const text = getInterpretationText()
-  if (!text && rambleReceipts.value.length === 0) {
-    return
-  }
-
-  const sessionId = rambleSessionId.value
-  isInterpreting.value = true
-  hasInterpreted.value = false
-  rambleError.value = ''
-
-  try {
-    const response = await assistantRepository.interpretTransactions({
-      text: rambleText.value.trim(),
-      savedRambles: savedRambles.value.map((ramble) => ({ text: ramble.text, createdAt: ramble.created_at })),
-      now: new Date().toISOString(),
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      language: profileStore.language,
-      externalContext: profileStore.assistantLlmContext,
-      model: profileStore.assistantLlmModel,
-      context: getRambleContext(),
-      receiptImages: rambleReceipts.value.map((receipt) => receipt.dataUrl),
-    })
-
-    if (sessionId !== rambleSessionId.value) {
-      return
-    }
-
-    const resolvedTransactions = (response.transactions ?? []).map(resolveRambleTransaction)
-    const transactionDrafts = []
-    for (const transaction of resolvedTransactions) {
-      if (sessionId !== rambleSessionId.value) {
-        return
-      }
-
-      transactionDrafts.push({
-        id: transaction.id,
-        assistant: transaction,
-        item: await buildTransactionItemFromAssistant(transaction),
-        status: createStatus.pending,
-        error: null,
-        response: null,
-      })
-    }
-
-    rambleTransactions.value = transactionDrafts
-    hasInterpreted.value = true
-  } catch (error) {
-    if (sessionId !== rambleSessionId.value) {
-      return
-    }
-
-    rambleTransactions.value = []
-    rambleError.value = getRambleErrorMessage(error)
-    hasInterpreted.value = true
-  } finally {
-    if (sessionId === rambleSessionId.value) {
-      isInterpreting.value = false
-    }
-  }
-}
-
-const removeRambleTransaction = (transaction) => {
-  rambleTransactions.value = rambleTransactions.value.filter((rambleTransaction) => rambleTransaction.id !== transaction.id)
+const interpretRambleText = () => {
+  return interpret({ text: rambleText.value, savedRambles: savedRambles.value, receipts: rambleReceipts.value })
 }
 
 const openRambleTransaction = (transaction) => {
-  if (transaction.status === createStatus.creating) {
+  if (transaction.status === draftStatus.creating) {
     return
   }
 
@@ -475,124 +336,25 @@ const openRambleTransaction = (transaction) => {
 }
 
 const onRambleTransactionEdited = (editedTransaction) => {
-  const index = rambleTransactions.value.findIndex((transaction) => transaction.id === editedTransaction.id)
-  if (index >= 0) {
-    const existingTransaction = rambleTransactions.value[index]
-    rambleTransactions.value[index] = {
-      ...existingTransaction,
-      item: cloneDeep(editedTransaction.item),
-      status: existingTransaction.status === createStatus.success ? createStatus.success : createStatus.pending,
-      error: existingTransaction.status === createStatus.success ? existingTransaction.error : null,
-    }
-  }
-
+  applyEditedDraft(editedTransaction)
   editingRambleTransaction.value = null
-}
-
-const getReceiptsForTransaction = (transaction, receipts) => {
-  const matched = (transaction.assistant?.raw?.receiptIndexes ?? []).map((index) => receipts[index]).filter(Boolean)
-  if (matched.length > 0) {
-    return matched
-  }
-
-  // Without usable indexes, the fallback covers only the unambiguous single-draft case, where every photo belongs to it.
-  return rambleTransactions.value.length === 1 ? receipts : []
-}
-
-const attachReceipts = async (transaction, receipts) => {
-  const journalId = get(transaction.response, 'data.data.attributes.transactions.0.transaction_journal_id')
-  if (!journalId) {
-    return
-  }
-
-  for (const receipt of getReceiptsForTransaction(transaction, receipts)) {
-    try {
-      await new AttachmentRepository().uploadForTransaction(journalId, receipt.file)
-    } catch {
-      // Blob API failure, not an axios error; the transaction exists, the attachment is best effort.
-    }
-  }
 }
 
 const createRambleTransactions = async () => {
   const sessionId = rambleSessionId.value
-  const receipts = [...rambleReceipts.value]
-  const transactionsToCreate = rambleTransactions.value.filter((transaction) => transaction.status !== createStatus.success)
-  if (transactionsToCreate.length === 0) {
+  const { successCount, failedCount } = await create({ receipts: [...rambleReceipts.value] })
+  if (sessionId !== rambleSessionId.value || successCount === 0 || failedCount > 0) {
     return
   }
 
-  isCreatingRambleTransactions.value = true
-  rambleError.value = ''
-  let successCount = 0
-
-  try {
-    for (const transaction of transactionsToCreate) {
-      if (sessionId !== rambleSessionId.value) {
-        return
-      }
-
-      const transactionIndex = rambleTransactions.value.findIndex((rambleTransaction) => rambleTransaction.id === transaction.id)
-      if (transactionIndex < 0) {
-        continue
-      }
-
-      currentCreateIndex.value = transactionIndex + 1
-      rambleTransactions.value[transactionIndex].status = createStatus.creating
-      rambleTransactions.value[transactionIndex].error = null
-
-      try {
-        const requestData = TransactionTransformer.transformToApi(cloneDeep(rambleTransactions.value[transactionIndex].item))
-        const response = await transactionRepository.insert(requestData)
-        if (sessionId !== rambleSessionId.value) {
-          return
-        }
-
-        if (isResponseSuccessful(response)) {
-          rambleTransactions.value[transactionIndex].status = createStatus.success
-          rambleTransactions.value[transactionIndex].response = response
-          successCount += 1
-          await attachReceipts(rambleTransactions.value[transactionIndex], receipts)
-          if (sessionId !== rambleSessionId.value) {
-            return
-          }
-          continue
-        }
-
-        rambleTransactions.value[transactionIndex].status = createStatus.error
-        rambleTransactions.value[transactionIndex].error = getTransactionCreateErrorMessage(response)
-      } catch (error) {
-        if (sessionId !== rambleSessionId.value) {
-          return
-        }
-
-        rambleTransactions.value[transactionIndex].status = createStatus.error
-        rambleTransactions.value[transactionIndex].error = getTransactionCreateErrorMessage(error)
-      }
-    }
-
-    if (successCount > 0) {
-      UIUtils.showToastSuccess(t('transaction.assistant_ramble_created_toast', successCount))
-    }
-
-    if (failedRambleTransactionsCount.value > 0) {
-      return
-    }
-
-    const savedRamblesDeleted = !hasLoadedSavedRambles.value || (await deleteLoadedSavedRambles({ confirm: false }))
-    if (!savedRamblesDeleted) {
-      rambleError.value = 'Transactions were created, but saved rambles could not be deleted.'
-      return
-    }
-
-    closeRamblePopup()
-    await navigateTo(RouteConstants.ROUTE_TRANSACTION_LIST)
-  } finally {
-    if (sessionId === rambleSessionId.value) {
-      currentCreateIndex.value = 0
-      isCreatingRambleTransactions.value = false
-    }
+  const savedRamblesDeleted = !hasLoadedSavedRambles.value || (await deleteLoadedSavedRambles({ confirm: false }))
+  if (!savedRamblesDeleted) {
+    UIUtils.showToastError('Transactions were created, but saved rambles could not be deleted.')
+    return
   }
+
+  closeRamblePopup()
+  await navigateTo(RouteConstants.ROUTE_TRANSACTION_LIST)
 }
 
 watch(showRamblePopup, (newValue) => {
