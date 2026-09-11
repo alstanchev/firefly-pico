@@ -109,11 +109,20 @@ export default class TransactionTransformer extends ApiTransformer {
       return newItem
     })
 
-    return {
+    const result = {
       id,
       apply_rules: true,
       fire_webhooks: true,
       transactions,
     }
+
+    // Firefly III rejects a multi-split group without a title (GroupValidation::validateGroupDescription); single splits keep the old body untouched.
+    // Existing split groups saved from the main page now carry their title back too. That is a no-op: Firefly only
+    // touches the title when the key is present, and the value sent is the one it already has.
+    if (transactions.length > 1) {
+      result.group_title = get(item, 'attributes.group_title')
+    }
+
+    return result
   }
 }
