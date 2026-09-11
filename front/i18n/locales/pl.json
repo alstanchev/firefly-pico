@@ -117,6 +117,7 @@
     "assistant_ramble_receipt": "Receipt photo",
     "assistant_ramble_receipt_failed": "The photo could not be processed. Use a JPEG or PNG image.",
     "assistant_ramble_receipt_limit": "You can attach up to {count} receipt photos",
+    "assistant_ramble_interpreting": "Interpretowanie…",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Asystent transakcji",
