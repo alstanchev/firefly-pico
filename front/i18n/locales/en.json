@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "The items do not add up to the amount",
     "assistant_ramble_items_invalid_amount": "Every item needs an amount above zero",
     "assistant_ramble_items_missing_description": "Every item needs a description",
+    "assistant_ramble_split_fallback_foreign_currency": "Receipts booked with a foreign amount are kept as one transaction with the items in notes",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Transaction assistant",

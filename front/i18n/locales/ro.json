@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "Articolele nu se adună la sumă",
     "assistant_ramble_items_invalid_amount": "Fiecare articol are nevoie de o sumă mai mare decât zero",
     "assistant_ramble_items_missing_description": "Fiecare articol are nevoie de o descriere",
+    "assistant_ramble_split_fallback_foreign_currency": "Bonurile cu sumă în valută rămân o singură tranzacție cu articolele în note",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Asistent tranzacții",

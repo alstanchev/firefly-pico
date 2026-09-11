@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "Die Artikel ergeben nicht den Betrag",
     "assistant_ramble_items_invalid_amount": "Jeder Artikel braucht einen Betrag über null",
     "assistant_ramble_items_missing_description": "Jeder Artikel braucht eine Beschreibung",
+    "assistant_ramble_split_fallback_foreign_currency": "Belege mit Fremdwährungsbetrag bleiben eine Buchung mit den Artikeln in den Notizen",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Transaktions-Assistent",

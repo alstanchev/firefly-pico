@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "항목 합계가 금액과 맞지 않습니다",
     "assistant_ramble_items_invalid_amount": "모든 항목의 금액은 0보다 커야 합니다",
     "assistant_ramble_items_missing_description": "모든 항목에는 설명이 필요합니다",
+    "assistant_ramble_split_fallback_foreign_currency": "외화 금액 영수증은 하나의 거래로 유지되며 항목은 메모에 들어갑니다",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "거래 어시스턴트",

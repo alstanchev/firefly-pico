@@ -123,6 +123,7 @@
     "assistant_ramble_items_mismatch": "商品金额与总额不符",
     "assistant_ramble_items_invalid_amount": "每个商品的金额必须大于零",
     "assistant_ramble_items_missing_description": "每个商品都需要描述",
+    "assistant_ramble_split_fallback_foreign_currency": "外币金额的小票保留为一笔交易，商品写入备注",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "交易助手",

@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "Pozycje nie sumują się do kwoty",
     "assistant_ramble_items_invalid_amount": "Każda pozycja musi mieć kwotę większą od zera",
     "assistant_ramble_items_missing_description": "Każda pozycja musi mieć opis",
+    "assistant_ramble_split_fallback_foreign_currency": "Paragony z kwotą w obcej walucie pozostają jedną transakcją z pozycjami w notatkach",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Asystent transakcji",

@@ -130,6 +130,7 @@
     "assistant_ramble_items_mismatch": "Gli articoli non corrispondono all'importo",
     "assistant_ramble_items_invalid_amount": "Ogni articolo deve avere un importo maggiore di zero",
     "assistant_ramble_items_missing_description": "Ogni articolo deve avere una descrizione",
+    "assistant_ramble_split_fallback_foreign_currency": "Gli scontrini con importo in valuta estera restano una sola transazione con gli articoli nelle note",
     "assistant_ramble_unmatched_category": "Category not found: {name}",
     "assistant_ramble_unmatched_tags": "Tags not found: {names}",
     "assistant_tutorial_title": "Assistente transazioni",

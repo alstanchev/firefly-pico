@@ -10,13 +10,18 @@
       <div v-if="tagSuggestions.length">{{ $t('transaction.assistant_ramble_unmatched_tags', { names: tagSuggestions.join(', ') }) }}</div>
     </div>
 
-    <transaction-list-item :value="transaction.item" :is-detailed-mode="true" @on-edit="onEdit" @on-delete="onDelete" />
+    <div v-if="itemsProblem" class="text-size-12 text-danger px-3 pt-2">{{ $t(`transaction.assistant_ramble_items_${itemsProblem}`) }}</div>
+    <div v-if="transaction.splitFallbackReason" class="text-size-12 text-muted px-3 pt-2">{{ $t(`transaction.assistant_ramble_split_fallback_${transaction.splitFallbackReason}`) }}</div>
+
+    <transaction-list-item :value="previewItem" :is-detailed-mode="true" @on-edit="onEdit" @on-delete="onDelete" />
   </div>
 </template>
 
 <script setup>
 import { get } from 'lodash-es'
 import TransactionListItem from '~/components/list-items/transaction-list-item.vue'
+import { expandReceiptItems, getReceiptItemsProblem } from '~/utils/ReceiptItemUtils.js'
+import { getDraftDecimals } from '~/composables/useTransactionAssistantDraft.js'
 
 const emit = defineEmits(['delete', 'edit'])
 const transaction = defineModel({
@@ -26,6 +31,14 @@ const transaction = defineModel({
 
 const categorySuggestion = computed(() => get(transaction.value, 'item.attributes.transactions.0.categorySuggestion'))
 const tagSuggestions = computed(() => get(transaction.value, 'item.attributes.transactions.0.tagSuggestions') ?? [])
+
+const firstSplit = computed(() => get(transaction.value, 'item.attributes.transactions.0'))
+const items = computed(() => transaction.value.items ?? [])
+const decimals = computed(() => getDraftDecimals(firstSplit.value))
+// Problems are computed where they are shown, never stored on the draft, so an edit to the amount or the items updates the preview.
+const itemsProblem = computed(() => (items.value.length > 0 ? getReceiptItemsProblem(items.value, get(firstSplit.value, 'amount'), decimals.value) : null))
+// A draft whose items do not add up is previewed as it would be created if the user merged it: one transaction with the receipt total.
+const previewItem = computed(() => (items.value.length > 0 && !itemsProblem.value ? expandReceiptItems(transaction.value.item, items.value, decimals.value) : transaction.value.item))
 
 const isCreating = computed(() => transaction.value.status === 'creating')
 const isCreated = computed(() => transaction.value.status === 'success')
