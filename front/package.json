@@ -14,7 +14,8 @@
     "lint:eslint": "eslint .",
     "lint:eslint:fix": "eslint . --fix",
     "lint:prettier": "prettier . --check",
-    "lint:prettier:fix": "prettier --write --list-different ."
+    "lint:prettier:fix": "prettier --write --list-different .",
+    "test": "node --test 'tests/**/*.test.js'"
   },
   "devDependencies": {
     "@faker-js/faker": "^9.9.0",
