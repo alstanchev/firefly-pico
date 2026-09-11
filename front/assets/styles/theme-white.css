@@ -1938,6 +1938,11 @@ body {
     object-fit: cover;
 }
 
+.ramble-receipt-item-amount {
+    width: 96px;
+    flex: 0 0 auto;
+}
+
 .van-button.ramble-receipt-remove {
     position: absolute;
     top: 2px;
