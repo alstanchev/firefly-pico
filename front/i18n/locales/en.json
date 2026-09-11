@@ -209,6 +209,7 @@
     "assistant": {
       "title": "Assistant settings",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Split receipts into items by default",
       "substring_todo_tag": "Substring which adds the todo tag",
       "currency": "The amount part in the assistant text will be interpreted as a foreign currency of this kind",
       "ramble": "Dictation / ramble",

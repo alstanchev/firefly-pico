@@ -208,6 +208,7 @@
     "assistant": {
       "title": "Paramètres de l'assistant",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Diviser les reçus en articles par défaut",
       "substring_todo_tag": "Sous-chaîne qui ajoute l'étiquette à faire",
       "currency": "La partie montant dans le texte de l'assistant sera interprétée comme une devise étrangère de ce type",
       "ramble": "Dictation / ramble",

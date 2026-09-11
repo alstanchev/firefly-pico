@@ -7,6 +7,7 @@
         <div class="van-cell-group-title">{{ $t('settings.general') }}:</div>
 
         <app-boolean v-model="autoFocusAssistant" :label="$t('settings.assistant.auto_focus')" />
+        <app-boolean v-model="assistantSplitReceipts" :label="$t('settings.assistant.split_receipts')" />
         <app-field v-model="assistantTodoTagMatcher" :icon="TablerIconConstants.fieldText2" :label="$t('settings.assistant.substring_todo_tag')" :rules="[rule.required()]" required />
         <currency-select v-model="assistantCurrency" :info="$t('settings.assistant.currency')" />
       </van-cell-group>
@@ -171,6 +172,7 @@ const appStore = useAppStore()
 const assistantTodoTagMatcher = ref('')
 const assistantCurrency = ref(null)
 const autoFocusAssistant = ref(false)
+const assistantSplitReceipts = ref(false)
 const assistantLlmContext = ref('')
 const isTestingLlm = ref(false)
 const isTestingTranscription = ref(false)
@@ -198,6 +200,7 @@ const syncedSettings = [
   { store: profileStore, path: 'assistantCurrency', ref: assistantCurrency },
   { store: profileStore, path: 'assistantLlmContext', ref: assistantLlmContext },
   { store: profileStore, path: 'assistantLlmModel', ref: assistantLlmModel },
+  { store: profileStore, path: 'assistantSplitReceipts', ref: assistantSplitReceipts },
 ]
 
 watchSettingsStore(syncedSettings)

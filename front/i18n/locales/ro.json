@@ -208,6 +208,7 @@
     "assistant": {
       "title": "Setări asistent",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Împarte bonurile pe articole în mod implicit",
       "substring_todo_tag": "Subșir care adaugă eticheta de făcut",
       "currency": "Partea de sumă din textul asistentului va fi interpretată ca o valută străină de acest tip",
       "ramble": "Dictation / ramble",

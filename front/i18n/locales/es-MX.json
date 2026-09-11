@@ -208,6 +208,7 @@
     "assistant": {
       "title": "Ajustes del asistente",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Dividir recibos en artículos de forma predeterminada",
       "substring_todo_tag": "Subcadena que agrega la etiqueta pendiente",
       "currency": "La parte del monto en el texto del asistente se interpretará como moneda extranjera de este tipo",
       "ramble": "Dictation / ramble",

@@ -208,6 +208,7 @@
     "assistant": {
       "title": "Настройки ассистента",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Разбивать чеки на позиции по умолчанию",
       "substring_todo_tag": "Подстрока, добавляющая тег задачи",
       "currency": "Сумма в тексте ассистента будет интерпретироваться как иностранная валюта этого типа",
       "ramble": "Dictation / ramble",

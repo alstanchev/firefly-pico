@@ -209,6 +209,7 @@
     "assistant": {
       "title": "Assistent Einstellungen",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Belege standardmäßig in Artikel aufteilen",
       "substring_todo_tag": "Teiltext welcher den ToDo Tag hinzufügt",
       "currency": "Der Betrag Teil im Assistent-Text wird als ausändische Währung dieser Art interpretiert.",
       "ramble": "Dictation / ramble",

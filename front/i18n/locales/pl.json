@@ -208,6 +208,7 @@
     "assistant": {
       "title": "Ustawienia Asystenta",
       "auto_focus": "Auto focus assistant",
+      "split_receipts": "Domyślnie dziel paragony na pozycje",
       "substring_todo_tag": "Tekst, który dodaje tag todo",
       "currency": "Wartość podana w tekście asystenta zostanie zinterpretowana jako waluta obca tego rodzaju",
       "ramble": "Dictation / ramble",

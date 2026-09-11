@@ -209,6 +209,7 @@
     "assistant": {
       "title": "어시스턴트 설정",
       "auto_focus": "어시스턴트 자동 포커스",
+      "split_receipts": "기본적으로 영수증을 항목별로 분할",
       "substring_todo_tag": "할 일 태그를 추가하는 문자열",
       "currency": "어시스턴트 텍스트의 금액 부분은 이 통화의 외화로 해석됩니다",
       "ramble": "받아쓰기",
