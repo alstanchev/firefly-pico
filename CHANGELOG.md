@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.4-dev6
+
+- Receipt scanning has its own popup: tap the camera, choose whether to
+  split into items, add the photos and they are interpreted right away,
+  with no Interpret step. The Dictate popup no longer accepts photos.
+- Each receipt photo is framed in a crop step before it is read, and a
+  thumbnail can be tapped to adjust the frame and scan again. The cropped
+  area is cut from the full photo before downscaling, so small print stays
+  legible.
+- With "Split into items" on, a scanned receipt becomes one Firefly split
+  transaction with one split per purchased item. The items must add up
+  exactly to the receipt total; any difference is shown on the draft and
+  fixed in its editor (edit, add, delete or merge the items) before
+  creating. Receipts booked with a foreign amount stay one transaction
+  with the items in notes.
+- New assistant setting "Split receipts into items by default", off by
+  default; it only sets the chip's starting state for each scan.
+
 ## 0.2.4-dev5
 
 - Opening or swiping to a transaction from the list shows it instantly
