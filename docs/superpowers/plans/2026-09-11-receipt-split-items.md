@@ -19,6 +19,7 @@
 - Every new user-visible string gets a key in all eleven locale files under `front/i18n/locales/`: `en.json`, `ro.json`, `zh-CN.json`, `it.json`, `pt-BR.json`, `de-DE.json`, `fr.json`, `pl.json`, `ru-RU.json`, `es-MX.json`, `ko.json`. Translate to the target language; when unsure, an English value is acceptable, but the key must exist.
 - Any new class with hardcoded light colours needs a `.van-theme-dark` override in `front/assets/styles/theme-dark.css`. Prefer CSS variables and existing helper classes so no override is needed.
 - Verification commands run from `front/`: `npm run lint`, `npm run build`, `npm test` (added in Task 6; it runs `node --test 'tests/**/*.test.js'`; a bare `node --test tests/` fails on Node 21+ because the directory is treated as a module path). There is no other test runner; do not add one.
+- `npm test` needs Node 22.7 or newer: `front/package.json` has no `"type": "module"`, so the `import` syntax in the helpers and tests relies on Node's module detection (unflagged in 22.7), and the test glob needs Node 21. Node 23.6 is installed. On an older Node the symptom is "Cannot use import statement outside a module"; upgrade Node rather than adding a `type` field or renaming files.
 - JSON parse check, run from the repo root after every locale change:
   `for f in front/i18n/locales/*.json; do node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" || echo "BROKEN $f"; done`
   Expected: no `BROKEN` lines.
@@ -52,7 +53,7 @@ Phase 2 (splits):
 - Modify `front/components/transaction/ramble/ramble-transaction-item.vue` — expanded preview or problem line, fallback line.
 - Create `front/components/transaction/ramble/ramble-receipt-items.vue` — item editor.
 - Modify `front/components/transaction/ramble/ramble-transaction-edit-popup.vue` — editor, merge, save guard.
-- Modify all eleven locale files — nine phase-2 keys.
+- Modify all eleven locale files — ten phase-2 keys (one under `settings.assistant`, nine under `transaction`).
 - Modify `readme.md`, `CHANGELOG.md`, `config.yaml`.
 
 ---
@@ -66,7 +67,7 @@ Phase 2 (splits):
 **Interfaces:**
 - Consumes: `AssistantRepository.interpretTransactions(data)`, `TransactionRepository.insert(requestData)`, `AttachmentRepository.uploadForTransaction(journalId, file)`, `TransactionTransformer.transformToApi(item)`, `useRambleTransactionResolver()`, `useTransactionAssistantDraft()`.
 - Produces: `draftStatus` and `useRambleDrafts()` exactly as below. Task 2 renders from it; Task 7 extends `interpret`, `create` and `applyEditedDraft`.
-- Behaviour differences from today, both intentional: `interpret` accepts `splitReceipts` and forwards it in the request data (ignored by the repository until Task 5), and every draft records `receiptIds` so attachments are matched by receipt id instead of array position.
+- Behaviour differences from today, all intentional: `interpret` accepts `splitReceipts` and forwards it in the request data (ignored by the repository until Task 5); every draft records `receiptIds` so attachments are matched by receipt id instead of array position; and `interpret` clears `drafts` before the request, so a re-interpretation shows the interpreting state instead of the previous drafts.
 
 - [ ] **Step 1: Create the composable**
 
@@ -126,6 +127,8 @@ export const useRambleDrafts = () => {
   const isInterpreting = ref(false)
   const isCreating = ref(false)
   const hasInterpreted = ref(false)
+  // True once a draft was edited, removed or created since the last interpretation: a re-scan would lose work.
+  const hasEditedDrafts = ref(false)
   const error = ref('')
   const currentCreateIndex = ref(0)
   // Bumped on reset so a request that finishes after the popup closed cannot write stale state.
@@ -161,6 +164,7 @@ export const useRambleDrafts = () => {
     isInterpreting.value = false
     isCreating.value = false
     hasInterpreted.value = false
+    hasEditedDrafts.value = false
     error.value = ''
     currentCreateIndex.value = 0
   }
@@ -172,6 +176,8 @@ export const useRambleDrafts = () => {
     }
 
     const session = sessionId.value
+    // A re-scan replaces the drafts, so the body shows the interpreting state rather than stale drafts and a live Create button.
+    drafts.value = []
     isInterpreting.value = true
     hasInterpreted.value = false
     error.value = ''
@@ -211,6 +217,7 @@ export const useRambleDrafts = () => {
 
       drafts.value = newDrafts
       hasInterpreted.value = true
+      hasEditedDrafts.value = false
     } catch (requestError) {
       if (session !== sessionId.value) {
         return
@@ -218,6 +225,7 @@ export const useRambleDrafts = () => {
       drafts.value = []
       error.value = getInterpretErrorMessage(requestError)
       hasInterpreted.value = true
+      hasEditedDrafts.value = false
     } finally {
       if (session === sessionId.value) {
         isInterpreting.value = false
@@ -227,6 +235,7 @@ export const useRambleDrafts = () => {
 
   const removeDraft = (draft) => {
     drafts.value = drafts.value.filter((existing) => existing.id !== draft.id)
+    hasEditedDrafts.value = true
   }
 
   const applyEditedDraft = (editedDraft) => {
@@ -236,6 +245,7 @@ export const useRambleDrafts = () => {
     }
     const existing = drafts.value[index]
     const keepsSuccess = existing.status === draftStatus.success
+    hasEditedDrafts.value = true
     drafts.value[index] = {
       ...existing,
       item: cloneDeep(editedDraft.item),
@@ -303,6 +313,8 @@ export const useRambleDrafts = () => {
             drafts.value[index].status = draftStatus.success
             drafts.value[index].response = response
             successCount += 1
+            // A created draft is work a re-scan would throw away (and could duplicate).
+            hasEditedDrafts.value = true
             await attachReceipts(drafts.value[index], receipts)
             continue
           }
@@ -335,6 +347,7 @@ export const useRambleDrafts = () => {
     isInterpreting,
     isCreating,
     hasInterpreted,
+    hasEditedDrafts,
     error,
     currentCreateIndex,
     createdCount,
@@ -659,7 +672,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `useRambleDrafts()` from Task 1, `ramble-transaction-item.vue`, `ramble-transaction-edit-popup.vue`, `useSwipeToDismiss`.
-- Produces: component `RambleDraftsPopup` with props `icon`, `title`, `subtitle`, `emptyHint`, `receipts`; model `show`; default slot with slot prop `isInterpreting`; exposed `interpret(payload)`, `reset()` and `hasDrafts`; emit `created`. Tasks 3 and 4 render it.
+- Produces: component `RambleDraftsPopup` with props `icon`, `title`, `subtitle`, `emptyHint`, `receipts`; model `show`; default slot with slot prop `isInterpreting`; exposed `interpret(payload)`, `reset()` and `hasEditedDrafts`; emit `created`. `ramble.vue` renders it from Step 3 of this task, and `receipt-scan.vue` in Task 3.
 
 - [ ] **Step 1: i18n for the interpreting state**
 
@@ -779,14 +792,13 @@ const emit = defineEmits(['created'])
 const show = defineModel('show', { type: Boolean, default: false })
 
 const appStore = useAppStore()
-const { drafts, isInterpreting, isCreating, hasInterpreted, error, createButtonCount, hasCreateProgress, createProgressPercentage, createProgressLabel, createButtonLabel, interpret, create, removeDraft, applyEditedDraft, reset } =
+const { drafts, isInterpreting, isCreating, hasInterpreted, hasEditedDrafts, error, createButtonCount, hasCreateProgress, createProgressPercentage, createProgressLabel, createButtonLabel, interpret, create, removeDraft, applyEditedDraft, reset } =
   useRambleDrafts()
 
 const popupRef = ref(null)
 const popupContentRef = ref(null)
 const showEditPopup = ref(false)
 const editingDraft = ref(null)
-const hasDrafts = computed(() => drafts.value.length > 0)
 
 useSwipeToDismiss({
   onSwipe: () => (show.value = false),
@@ -836,7 +848,7 @@ watch(show, (newValue) => {
 defineExpose({
   interpret,
   reset,
-  hasDrafts,
+  hasEditedDrafts,
 })
 </script>
 ```
@@ -969,7 +981,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: all eleven files in `front/i18n/locales/`
 
 **Interfaces:**
-- Consumes: `RambleDraftsPopup` from Task 2 (including exposed `hasDrafts`); `compressImageToJpeg`, `blobToDataUrl` from `~/utils/ImageUtils.js`; `getGUID` from `~/utils/Utils.js`; `profileStore.assistantSplitReceipts` (undefined until Task 4, coerced to `false`).
+- Consumes: `RambleDraftsPopup` from Task 2 (including exposed `hasEditedDrafts`); `compressImageToJpeg`, `blobToDataUrl` from `~/utils/ImageUtils.js`; `getGUID` from `~/utils/Utils.js`; `profileStore.assistantSplitReceipts` (undefined until Task 4, coerced to `false`).
 - Produces: `receipt-scan.vue` mounted next to `<ramble>`; nothing later depends on its internals.
 
 - [ ] **Step 1: Add the phase-1 i18n keys**
@@ -1167,9 +1179,10 @@ const scan = () => {
   return popupRef.value?.interpret({ receipts: receipts.value, splitReceipts: splitItems.value })
 }
 
-// A re-scan replaces the drafts and any edits made to them, so it is confirmed whenever drafts exist.
+// A re-scan replaces the drafts. It is confirmed only when that loses work (a draft edited, removed or created),
+// so a receipt spread over several photos can be added one photo at a time without a prompt each time.
 const confirmRescan = async () => {
-  if (!popupRef.value?.hasDrafts) {
+  if (!popupRef.value?.hasEditedDrafts) {
     return true
   }
   return UIUtils.showDeleteConfirmation(t('transaction.assistant_receipt_rescan_title'), t('transaction.assistant_receipt_rescan_message'))
@@ -1267,7 +1280,7 @@ Expected: success.
 
 - [ ] **Step 6: Manual check**
 
-With the LLM configured: two buttons next to the assistant field (dictate, camera). Tap the camera. Expected: the receipt popup opens empty with the chip (off), the hint, Add photo and a disabled Scan again. Add a receipt photo: the thumbnail appears and interpreting starts without another tap, the body shows "Interpreting…", then a draft appears. Tap the chip with drafts present: the confirmation appears; decline and the chip stays as it was; accept and it re-interprets. Add a second photo: the confirmation appears again. Create attaches the right photo (check the transaction's attachments in Firefly). Remove the photo, confirm Scan again is disabled. Open the Dictate popup and confirm no camera button or thumbnails remain, and that text interpretation still works. Check dark theme, including the chip in both states.
+With the LLM configured: two buttons next to the assistant field (dictate, camera). Tap the camera. Expected: the receipt popup opens empty with the chip (off), the hint, Add photo and a disabled Scan again. Add a receipt photo: the thumbnail appears and interpreting starts without another tap, the body shows "Interpreting…", then a draft appears. Add a second photo without touching the draft: it re-interprets with no prompt, and the draft list is replaced by the "Interpreting…" state until the new drafts arrive. Open the draft, change the description, save, then tap the chip: the confirmation appears; decline and the chip stays as it was; accept and it re-interprets. Edit a draft again and add a photo: the confirmation appears again. Create attaches the right photo (check the transaction's attachments in Firefly). Remove the photo, confirm Scan again is disabled. Open the Dictate popup and confirm no camera button or thumbnails remain, and that text interpretation still works. Check dark theme, including the chip in both states.
 
 - [ ] **Step 7: Commit**
 
@@ -1371,7 +1384,7 @@ Replace the first string of the `hasReceipts` block (the one starting `'The user
 
 ```js
           splitReceipts
-            ? 'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put every printed line the customer paid for in items, one entry per line, including tax, VAT, service charge, tip, bag, deposit and rounding lines when the receipt prints them as separate amounts: description is the line text as printed and amount is the line total after that line\'s own discount; a line with a quantity and a unit price is one item whose amount is quantity times unit price. Every item amount must be greater than zero. Never emit a discount, refund or return as its own negative item: subtract it from the item it applies to, and spread a receipt-wide discount over the items it covers. The item amounts must add up exactly to amount. Do not repeat the items in notes; leave notes null unless the receipt shows other useful information. Transactions that come only from the text have an empty items array. Set receiptIndexes to the 0-based positions of every photo the transaction came from; use an empty array for transactions that come from the text.'
+            ? 'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put every printed line the customer paid for in items, one entry per line, including tax, VAT, service charge, tip, bag, deposit and rounding lines when the receipt prints them as separate amounts: description is the line text as printed and amount is the line total after that line\'s own discount; a line with a quantity and a unit price is one item whose amount is quantity times unit price. Every item amount must be greater than zero. Never emit a discount, refund or return as its own negative item: subtract it from the item it applies to, and spread a receipt-wide discount over the items it covers. The item amounts must add up exactly to amount. Do not repeat the items in notes; leave notes null unless the receipt shows other useful information. If the item lines cannot be read from a photo, return an empty items array for that transaction and instead put every purchased item in notes, one per line, as "item - price". Transactions that come only from the text have an empty items array. Set receiptIndexes to the 0-based positions of every photo the transaction came from; use an empty array for transactions that come from the text.'
             : 'The user message may also contain one or more receipt photos. Read each photo and extract its purchase as one transaction: description is the merchant name as printed, amount is the final total actually paid (after discounts, including taxes; never a subtotal, a line item, or the cash tendered), currencyCode from the printed currency or the merchant country, occurredAt from the printed date and time, type expense. Put every purchased item in notes, one per line, always with its price as printed: "item - price", or "item - quantity x unit price = line total" when the document prints a quantity and a unit price. Never list an item without a price. Set receiptIndexes to the 0-based positions of every photo the transaction came from; use an empty array for transactions that come from the text.',
 ```
 
@@ -1425,7 +1438,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 - Modify: `front/package.json` (scripts)
 
 **Interfaces:**
-- Produces: `parseAmount(value) -> number`, `roundAmount(value, decimals) -> number`, `sumReceiptItems(items, decimals) -> number`, `getReceiptItemsProblem(items, total, decimals) -> null | 'invalid_amount' | 'mismatch'`, `formatReceiptItemsAsNotes(items, decimals) -> string`, `expandReceiptItems(item, items, decimals) -> item`. Used by Tasks 7, 8, 9.
+- Produces: `parseAmount(value) -> number`, `roundAmount(value, decimals) -> number`, `sumReceiptItems(items, decimals) -> number`, `getReceiptItemsProblem(items, total, decimals) -> null | 'missing_description' | 'invalid_amount' | 'mismatch'`, `formatReceiptItemsAsNotes(items, decimals) -> string`, `expandReceiptItems(item, items, decimals) -> item`. Used by Tasks 7, 8, 9.
+- Invariant: every amount is rounded to `decimals` before it is compared, summed or written, so the numbers the check accepts are the numbers Firefly receives.
 
 - [ ] **Step 1: Add the test script**
 
@@ -1457,7 +1471,7 @@ const draftItem = () => ({
       {
         amount: '3.30',
         description: 'Lidl',
-        notes: '',
+        notes: 'Paid by card',
         tags: [{ id: 1 }],
         accountSource: { id: 9 },
       },
@@ -1481,11 +1495,15 @@ test('roundAmount rounds to the given decimals', () => {
   assert.equal(Number.isNaN(roundAmount('x', 2)), true)
 })
 
-test('sumReceiptItems adds numeric and string amounts without float noise and ignores junk', () => {
+test('sumReceiptItems rounds each amount before adding, and ignores junk', () => {
   assert.equal(sumReceiptItems(items, 2), 3.3)
   assert.equal(sumReceiptItems([{ amount: 'x' }, { amount: 2 }], 2), 2)
   assert.equal(sumReceiptItems([], 2), 0)
+  // The posted amounts are 0.33 + 0.33 + 0.33, so the sum must be 0.99, not the rounded raw sum 1.00.
+  assert.equal(sumReceiptItems([{ amount: 0.333 }, { amount: 0.333 }, { amount: 0.333 }], 2), 0.99)
 })
+
+const named = (list) => list.map((entry, index) => ({ description: `Item ${index}`, ...entry }))
 
 test('getReceiptItemsProblem is exact at the currency precision', () => {
   assert.equal(getReceiptItemsProblem(items, '3.30', 2), null)
@@ -1494,13 +1512,33 @@ test('getReceiptItemsProblem is exact at the currency precision', () => {
   assert.equal(getReceiptItemsProblem(items, '3,3', 2), null)
   assert.equal(getReceiptItemsProblem(items, '', 2), 'mismatch')
   assert.equal(getReceiptItemsProblem(items, null, 2), 'mismatch')
-  assert.equal(getReceiptItemsProblem([{ amount: 1000 }, { amount: 235 }], 1235, 0), null)
+  assert.equal(getReceiptItemsProblem(named([{ amount: 1000 }, { amount: 235 }]), 1235, 0), null)
+  assert.equal(getReceiptItemsProblem(named([{ amount: 0.333 }, { amount: 0.333 }, { amount: 0.333 }]), 1, 2), 'mismatch')
 })
 
-test('getReceiptItemsProblem reports non-positive or missing amounts before a mismatch', () => {
-  assert.equal(getReceiptItemsProblem([{ amount: 0 }, { amount: 3.3 }], 3.3, 2), 'invalid_amount')
-  assert.equal(getReceiptItemsProblem([{ amount: -1 }, { amount: 4.3 }], 3.3, 2), 'invalid_amount')
-  assert.equal(getReceiptItemsProblem([{ amount: '' }, { amount: 3.3 }], 3.3, 2), 'invalid_amount')
+test('getReceiptItemsProblem reports amounts that are missing, non-positive or round to zero', () => {
+  assert.equal(getReceiptItemsProblem(named([{ amount: 0 }, { amount: 3.3 }]), 3.3, 2), 'invalid_amount')
+  assert.equal(getReceiptItemsProblem(named([{ amount: -1 }, { amount: 4.3 }]), 3.3, 2), 'invalid_amount')
+  assert.equal(getReceiptItemsProblem(named([{ amount: '' }, { amount: 3.3 }]), 3.3, 2), 'invalid_amount')
+  // 0.004 would post as 0.00, which Firefly rejects.
+  assert.equal(getReceiptItemsProblem(named([{ amount: 0.004 }, { amount: 3.3 }]), 3.3, 2), 'invalid_amount')
+  assert.equal(getReceiptItemsProblem(named([{ amount: 0.4 }, { amount: 3 }]), 3, 0), 'invalid_amount')
+})
+
+test('getReceiptItemsProblem reports an empty description first', () => {
+  assert.equal(
+    getReceiptItemsProblem(
+      [
+        { description: '', amount: 1 },
+        { description: 'Bread', amount: 2.3 },
+      ],
+      3.3,
+      2,
+    ),
+    'missing_description',
+  )
+  assert.equal(getReceiptItemsProblem([{ description: '   ', amount: 0 }], 3.3, 2), 'missing_description')
+  assert.equal(getReceiptItemsProblem([{ amount: 1 }], 1, 2), 'missing_description')
 })
 
 test('formatReceiptItemsAsNotes renders one line per item with fixed decimals', () => {
@@ -1528,16 +1566,38 @@ test('expandReceiptItems clones the first split per item and sets the group titl
     ],
   )
   assert.equal(expanded.attributes.transactions[1].accountSource.id, 9)
+  // Receipt-level notes belong to the group once, not to every journal.
+  assert.equal(expanded.attributes.transactions[0].notes, 'Paid by card')
+  assert.equal(expanded.attributes.transactions[1].notes, '')
   assert.notEqual(expanded.attributes.transactions[0].tags, item.attributes.transactions[0].tags)
   assert.equal(item.attributes.transactions.length, 1)
   assert.equal(item.attributes.group_title, undefined)
 })
 
-test('expandReceiptItems formats with the given decimals', () => {
-  const expanded = expandReceiptItems(draftItem(), [{ description: 'A', amount: 1000 }, { description: 'B', amount: 235 }], 0)
+test('expandReceiptItems rounds and formats with the given decimals', () => {
+  const expanded = expandReceiptItems(
+    draftItem(),
+    [
+      { description: 'A', amount: 1000 },
+      { description: 'B', amount: 235 },
+    ],
+    0,
+  )
   assert.deepEqual(
     expanded.attributes.transactions.map((split) => split.amount),
     ['1000', '235'],
+  )
+  const rounded = expandReceiptItems(
+    draftItem(),
+    [
+      { description: 'A', amount: '1,006' },
+      { description: 'B', amount: 2.294 },
+    ],
+    2,
+  )
+  assert.deepEqual(
+    rounded.attributes.transactions.map((split) => split.amount),
+    ['1.01', '2.29'],
   )
 })
 ```
@@ -1578,17 +1638,23 @@ export const roundAmount = (value, decimals = 2) => {
   return Number.isFinite(parsed) ? Number(parsed.toFixed(decimals)) : NaN
 }
 
+// Each amount is rounded before it is added: the posted splits are the rounded amounts, so the check must add
+// exactly those (0.333 x 3 posts as 0.99, not 1.00).
 export const sumReceiptItems = (items, decimals = 2) => {
   const sum = items.reduce((result, item) => {
-    const amount = parseAmount(item.amount)
+    const amount = roundAmount(item.amount, decimals)
     return result + (Number.isFinite(amount) ? amount : 0)
   }, 0)
   return roundAmount(sum, decimals)
 }
 
-// Exact reconciliation: the rounded sum must equal the rounded total. Nothing is ever adjusted silently.
+// Exact reconciliation on the rounded amounts, in the order the user should fix things: a blank row, a bad amount,
+// then the total. Nothing is ever adjusted silently.
 export const getReceiptItemsProblem = (items, total, decimals = 2) => {
-  if (items.some((item) => !(parseAmount(item.amount) > 0))) {
+  if (items.some((item) => !String(item.description ?? '').trim())) {
+    return 'missing_description'
+  }
+  if (items.some((item) => !(roundAmount(item.amount, decimals) > 0))) {
     return 'invalid_amount'
   }
   const roundedTotal = roundAmount(total, decimals)
@@ -1601,13 +1667,14 @@ export const getReceiptItemsProblem = (items, total, decimals = 2) => {
 export const formatReceiptItemsAsNotes = (items, decimals = 2) => {
   return items
     .map((item) => {
-      const amount = parseAmount(item.amount)
+      const amount = roundAmount(item.amount, decimals)
       return `${item.description} - ${Number.isFinite(amount) ? amount.toFixed(decimals) : item.amount}`
     })
     .join('\n')
 }
 
-// Turns a single-split draft into a Firefly group with one split per item. Every split inherits the first split's fields.
+// Turns a single-split draft into a Firefly group with one split per item. Every split inherits the first split's fields,
+// except notes, which stay on the first split so a receipt-level note is not repeated on every journal.
 // Callers only expand items that have no problem.
 export const expandReceiptItems = (item, items, decimals = 2) => {
   if (!items || items.length < 2) {
@@ -1618,10 +1685,11 @@ export const expandReceiptItems = (item, items, decimals = 2) => {
   const firstSplit = expanded.attributes.transactions[0]
 
   expanded.attributes.group_title = firstSplit.description
-  expanded.attributes.transactions = items.map((receiptItem) => ({
+  expanded.attributes.transactions = items.map((receiptItem, index) => ({
     ...cloneDeep(firstSplit),
     description: receiptItem.description,
-    amount: parseAmount(receiptItem.amount).toFixed(decimals),
+    amount: roundAmount(receiptItem.amount, decimals).toFixed(decimals),
+    notes: index === 0 ? firstSplit.notes : '',
   }))
 
   return expanded
@@ -1634,7 +1702,7 @@ export const expandReceiptItems = (item, items, decimals = 2) => {
 npm test
 ```
 
-Expected: `# pass 9`, `# fail 0`.
+Expected: `# pass 10`, `# fail 0`.
 
 - [ ] **Step 6: Lint**
 
@@ -1642,7 +1710,7 @@ Expected: `# pass 9`, `# fail 0`.
 npm run lint
 ```
 
-Expected: success. If Prettier reformats the test file's nested arrays, accept its formatting for that file only.
+Expected: success. The test file above is already in Prettier's format (`prettier . --check` covers `tests/`); do not run `lint:fix`.
 
 - [ ] **Step 7: Commit**
 
@@ -1674,9 +1742,10 @@ In every locale file, inside `"transaction"`, add after `"assistant_receipt_resc
 ```json
     "assistant_ramble_items_mismatch": "The items do not add up to the amount",
     "assistant_ramble_items_invalid_amount": "Every item needs an amount above zero",
+    "assistant_ramble_items_missing_description": "Every item needs a description",
 ```
 
-Suggested translations: ro "Articolele nu se adună la sumă" / "Fiecare articol are nevoie de o sumă mai mare decât zero"; de-DE "Die Artikel ergeben nicht den Betrag" / "Jeder Artikel braucht einen Betrag über null"; fr "Les articles ne correspondent pas au montant" / "Chaque article doit avoir un montant supérieur à zéro"; it "Gli articoli non corrispondono all'importo" / "Ogni articolo deve avere un importo maggiore di zero"; es-MX "Los artículos no suman el monto" / "Cada artículo necesita un monto mayor que cero"; pt-BR "Os itens não somam o valor" / "Cada item precisa de um valor acima de zero"; pl "Pozycje nie sumują się do kwoty" / "Każda pozycja musi mieć kwotę większą od zera"; ru-RU "Позиции не сходятся с суммой" / "У каждой позиции должна быть сумма больше нуля"; zh-CN "商品金额与总额不符" / "每个商品的金额必须大于零"; ko "항목 합계가 금액과 맞지 않습니다" / "모든 항목의 금액은 0보다 커야 합니다".
+Suggested translations (mismatch / invalid_amount / missing_description): ro "Articolele nu se adună la sumă" / "Fiecare articol are nevoie de o sumă mai mare decât zero" / "Fiecare articol are nevoie de o descriere"; de-DE "Die Artikel ergeben nicht den Betrag" / "Jeder Artikel braucht einen Betrag über null" / "Jeder Artikel braucht eine Beschreibung"; fr "Les articles ne correspondent pas au montant" / "Chaque article doit avoir un montant supérieur à zéro" / "Chaque article doit avoir une description"; it "Gli articoli non corrispondono all'importo" / "Ogni articolo deve avere un importo maggiore di zero" / "Ogni articolo deve avere una descrizione"; es-MX "Los artículos no suman el monto" / "Cada artículo necesita un monto mayor que cero" / "Cada artículo necesita una descripción"; pt-BR "Os itens não somam o valor" / "Cada item precisa de um valor acima de zero" / "Cada item precisa de uma descrição"; pl "Pozycje nie sumują się do kwoty" / "Każda pozycja musi mieć kwotę większą od zera" / "Każda pozycja musi mieć opis"; ru-RU "Позиции не сходятся с суммой" / "У каждой позиции должна быть сумма больше нуля" / "У каждой позиции должно быть описание"; zh-CN "商品金额与总额不符" / "每个商品的金额必须大于零" / "每个商品都需要描述"; ko "항목 합계가 금액과 맞지 않습니다" / "모든 항목의 금액은 0보다 커야 합니다" / "모든 항목에는 설명이 필요합니다".
 
 Run the JSON parse check.
 
@@ -1784,7 +1853,8 @@ In `front/transformers/TransactionTransformer.js`, replace the final `return { i
     }
 
     // Firefly III rejects a multi-split group without a title (GroupValidation::validateGroupDescription); single splits keep the old body untouched.
-    // Existing split groups edited on the main page also carry their title back now, which preserves it.
+    // Existing split groups saved from the main page now carry their title back too. That is a no-op: Firefly only
+    // touches the title when the key is present, and the value sent is the one it already has.
     if (transactions.length > 1) {
       result.group_title = get(item, 'attributes.group_title')
     }
@@ -1802,7 +1872,7 @@ Expected: all succeed.
 
 - [ ] **Step 7: Manual check**
 
-Chip on: scan a receipt with several items that add up. Open the browser devtools network tab and press Create. Expected: the POST body to `api/transactions` has `group_title` equal to the merchant, and one entry per item under `transactions`, each with the item's description and amount; Firefly shows a split transaction with the receipt total. Scan a one-item receipt: a single transaction with the item in notes. Chip off: a single transaction with items in notes, and the POST body has no `group_title`. Force a mismatch (edit an item amount in the devtools console, or scan a receipt with an unusual discount line) and press Create: that draft turns red with "The items do not add up to the amount" and no request is sent for it; other drafts are created. Main page: open an existing split transaction from the list and save it without changes; Firefly keeps its group title and the PUT body contains `group_title`.
+Chip on: scan a receipt with several items that add up. Open the browser devtools network tab and press Create. Expected: the POST body to `api/transactions` has `group_title` equal to the merchant, and one entry per item under `transactions`, each with the item's description and amount, and only the first entry carrying any notes; Firefly shows a split transaction with the receipt total. Scan a one-item receipt: a single transaction with the item in notes. Chip off: a single transaction with items in notes, and the POST body has no `group_title`. Force a mismatch (edit an item amount in the devtools console, or scan a receipt with an unusual discount line) and press Create: that draft turns red with "The items do not add up to the amount" and no request is sent for it; other drafts are created. Main page: open an existing split transaction from the list and save it without changes; Firefly keeps its group title and the PUT body contains `group_title`.
 
 - [ ] **Step 8: Commit**
 
@@ -1826,7 +1896,7 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 1: i18n**
 
-In every locale file, inside `"transaction"`, add after `"assistant_ramble_items_invalid_amount"`:
+In every locale file, inside `"transaction"`, add after `"assistant_ramble_items_missing_description"`:
 
 ```json
     "assistant_ramble_split_fallback_foreign_currency": "Receipts booked with a foreign amount are kept as one transaction with the items in notes",
@@ -2065,7 +2135,7 @@ const onSave = async () => {
 npm run lint && npm run build
 ```
 
-Manual, chip on, multi-item receipt: open the draft. Expected: the Items card lists the items under the form with the items total and no difference line; change an item amount and the red difference line appears with the signed difference; change the form's Amount instead and the difference follows it; try to save with a difference and see the mismatch toast; set an item to 0 and see the "above zero" toast; Add item appends an empty row that blocks saving until filled; delete an item; fix the amounts so the difference disappears and save; the preview shows the split badge with the new count. Merge removes the card, fills notes with one line per item using the currency's decimals, and leaves the amount. Delete every item: the card disappears and the draft is a plain single transaction. Create and confirm in Firefly. Check the card on desktop and mobile widths and in the dark theme.
+Manual, chip on, multi-item receipt: open the draft. Expected: the Items card lists the items under the form with the items total and no difference line; change an item amount and the red difference line appears with the signed difference; change the form's Amount instead and the difference follows it; try to save with a difference and see the mismatch toast; set an item to 0 and see the "above zero" toast, then to 0.004 (two-decimal currency) and see it again; type an amount with a comma and see it accepted; clear a description and see the "needs a description" toast; Add item appends an empty row that blocks saving until both fields are filled; delete an item; fix the amounts so the difference disappears and save; the preview shows the split badge with the new count. Merge removes the card, fills notes with one line per item using the currency's decimals, and leaves the amount. Delete every item: the card disappears and the draft is a plain single transaction. Create and confirm in Firefly. Check the card on desktop and mobile widths and in the dark theme.
 
 - [ ] **Step 5: Commit**
 
@@ -2143,7 +2213,8 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ## Self-review notes
 
-- Spec coverage: shared composable with receipt ids (T1), shell with interpreting state and `hasDrafts` (T2), popup-first receipt flow with chip, re-scan confirmation, strip and Dictate cleanup and phase-1 i18n (T3), setting default off (T4), prompt with tax/discount policy and normaliser (T5), exact helpers with tests and the `npm test` script (T6), draft building that keeps mismatched items, create guard, `group_title` and problem i18n (T7), preview with split, problem or fallback line (T8), editor with add/delete/merge, difference line and save guard (T9), docs and release (T10). Nothing in the spec is left without a task.
-- Review findings addressed: broken `node --test tests/` (T6, constraints); non-positive amounts (T5 normaliser keeps them visible, T6 `invalid_amount`, T7 create guard, T9 save guard); no drift (T6 exact reconciliation, T9 never rewrites the amount); stale receipt indexes (T1 ids); interpreting state (T2); add item (T9); mismatch keeps items (T7); tax lines (T5 prompt); `group_title` on main-page edits (T7 comment and manual check); re-scan discards edits (T3 confirmation); lowercase `items` key (T9 new key); notes decimals (T6); editor decimals (T7 `getDraftDecimals`, T9 prop); row keys by id (T7 ids, T9); `cloneDeep` import (T2); `nextTick` comment gone (T3); saved-rambles guard matches today's behaviour (T1).
-- Naming used consistently across tasks: `useRambleDrafts`, `draftStatus`, `interpret`, `create`, `removeDraft`, `applyEditedDraft`, `reset`, `hasDrafts`; `getDraftDecimals`, `buildReceiptDraft`; `parseAmount`, `roundAmount`, `sumReceiptItems`, `getReceiptItemsProblem`, `formatReceiptItemsAsNotes`, `expandReceiptItems`; draft fields `items`, `splitFallbackReason`, `receiptIds`; strip prop `splitItems` with event `toggleSplit`; i18n keys as listed in the spec.
+- Spec coverage: shared composable with receipt ids and `hasEditedDrafts` (T1), shell with interpreting state (T2), popup-first receipt flow with chip, re-scan confirmation, strip and Dictate cleanup and phase-1 i18n (T3), setting default off (T4), prompt with tax/discount policy and normaliser (T5), exact helpers with tests and the `npm test` script (T6), draft building that keeps mismatched items, create guard, `group_title` and problem i18n (T7), preview with split, problem or fallback line (T8), editor with add/delete/merge, difference line and save guard (T9), docs and release (T10). Nothing in the spec is left without a task.
+- Second-round findings addressed: re-scan shows the interpreting state because `interpret` clears the drafts first (T1); the test file is in Prettier's format so `npm run lint` passes at T6; the prompt falls back to items in notes when the lines cannot be read (T5); notes stay on the first split only (T6 `expandReceiptItems` and test); Node 22.7 floor for `npm test` (constraints); locale key count and shell consumers corrected (file map, T2).
+- Review findings addressed: broken `node --test tests/` (T6, constraints); non-positive amounts (T5 normaliser keeps them visible, T6 `invalid_amount`, T7 create guard, T9 save guard); no drift (T6 exact reconciliation, T9 never rewrites the amount); stale receipt indexes (T1 ids); interpreting state (T2); add item (T9); mismatch keeps items (T7); tax lines (T5 prompt); `group_title` on main-page edits is a no-op (T7 comment and regression check); re-scan confirmed only when it loses work (T1 `hasEditedDrafts`, T3 confirmation); rounded-before-summed amounts and rounds-to-zero (T6); empty description (T6 `missing_description`, T7 i18n, T9 save guard); comma decimals (T6 `parseAmount`); lowercase `items` key (T9 new key); notes decimals (T6); editor decimals (T7 `getDraftDecimals`, T9 prop); row keys by id (T7 ids, T9); `cloneDeep` import (T2); `nextTick` comment gone (T3); saved-rambles guard matches today's behaviour (T1).
+- Naming used consistently across tasks: `useRambleDrafts`, `draftStatus`, `interpret`, `create`, `removeDraft`, `applyEditedDraft`, `reset`, `hasEditedDrafts`; `getDraftDecimals`, `buildReceiptDraft`; `parseAmount`, `roundAmount`, `sumReceiptItems`, `getReceiptItemsProblem`, `formatReceiptItemsAsNotes`, `expandReceiptItems`; draft fields `items`, `splitFallbackReason`, `receiptIds`; strip prop `splitItems` with event `toggleSplit`; i18n keys as listed in the spec.
 - Task 1 intentionally leaves `ramble.vue`'s template untouched and Task 2 rewrites it; an executor doing Task 1 alone still ships a working Dictate popup. Task 2 references an i18n key it adds itself, Task 7 adds the problem keys it uses, so no task renders a missing key.

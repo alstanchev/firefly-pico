@@ -47,12 +47,25 @@ rambles and the "type or dictate" copy are noise around a receipt.
   editor by correcting, adding or deleting items, by correcting the amount,
   or by merging the items into notes. Drafts with unresolved problems are not
   created.
-- Every item amount must be above zero, because Firefly III rejects any other
-  split amount. The prompt folds discounts into the items they apply to; an
-  item that still arrives with a zero or negative amount is shown to the user
-  as a problem, never dropped or posted.
+- Every item amount must be above zero at the currency's precision, because
+  Firefly III rejects any other split amount, and every item needs a
+  description, which Firefly requires per split. The prompt folds discounts
+  into the items they apply to; an item that still arrives with a zero or
+  negative amount, or with no description, is shown to the user as a problem,
+  never dropped or posted.
+- Validation and posting see the same numbers. Every item amount is rounded
+  to the currency's decimals before it is checked, summed or written, so an
+  item set that passes the check is exactly what Firefly receives. Rounding
+  the raw sum would let 0.333 + 0.333 + 0.333 pass against 1.00 and then post
+  0.99.
+- A re-scan replaces the drafts. It is confirmed only when that loses work: a
+  draft was edited, removed or created since the last interpretation. Unedited
+  drafts are replaced silently, so a long receipt can be added one photo at a
+  time without a prompt after every photo.
 - Every split inherits the receipt-level classification: accounts, category,
-  budget, tags, date and type. The assistant does not classify items.
+  budget, tags, date and type. The assistant does not classify items. Notes
+  stay on the first split only, so a receipt-level note is not repeated on
+  every journal.
 - The only automatic fallback to a single transaction is a receipt booked
   with a foreign amount, because per-split foreign amounts would need their
   own conversion. The preview says why. A one-item receipt is a plain single
@@ -78,7 +91,7 @@ export const draftStatus = { pending, creating, success, error }
 
 export const useRambleDrafts = () => ({
   drafts,                    // ref([]) of { id, assistant, item, receiptIds, status, error, response }
-  isInterpreting, isCreating, hasInterpreted, error, currentCreateIndex,
+  isInterpreting, isCreating, hasInterpreted, hasEditedDrafts, error, currentCreateIndex,
   createdCount, failedCount, createButtonCount, hasCreateProgress,
   createProgressPercentage, createProgressLabel, createButtonLabel,
   interpret({ text = '', savedRambles = [], receipts = [], splitReceipts = false }),
@@ -90,9 +103,11 @@ export const useRambleDrafts = () => ({
 ```
 
 - `interpret` returns immediately when text, saved rambles and receipts are all
-  empty. Otherwise it calls `assistantRepository.interpretTransactions` (passing
-  `splitReceipts` through), resolves every returned transaction, builds a form
-  item for each and replaces `drafts`. Each draft records `receiptIds`: the
+  empty. Otherwise it clears `drafts` (so the popup body shows the interpreting
+  state, not the previous drafts and their Create button), calls
+  `assistantRepository.interpretTransactions` (passing `splitReceipts`
+  through), resolves every returned transaction, builds a form item for each
+  and stores them in `drafts`. Each draft records `receiptIds`: the
   ids of the receipts at the positions the assistant returned in
   `receiptIndexes`. Errors land in `error`; the session counter guards against
   a popup that was closed mid-request, exactly as today.
@@ -101,6 +116,10 @@ export const useRambleDrafts = () => ({
   fallback stays: with one draft and no ids, every photo belongs to it), shows
   the "N transactions created" toast, and returns the counts. It does not close
   anything or navigate.
+- `hasEditedDrafts` is a ref that `removeDraft`, `applyEditedDraft` and a
+  create run with at least one success set to `true`, and that `interpret`
+  (when it replaces the drafts) and `reset` set back to `false`. It answers
+  "would a re-scan lose work?".
 - `reset` bumps the session counter and clears all state.
 
 ### `front/components/transaction/ramble/ramble-drafts-popup.vue`
@@ -121,8 +140,9 @@ The popup shell both flows render. It owns one `useRambleDrafts()` instance.
   "No transactions found" after), the footer (progress + create button), and
   the `ramble-transaction-edit-popup`.
 - Swipe to dismiss is wired as today.
-- Exposes `interpret(payload)`, `reset()` and `hasDrafts` (boolean computed,
-  used by the receipt popup to confirm before a re-scan).
+- Exposes `interpret(payload)`, `reset()` and `hasEditedDrafts` (the
+  composable's ref, used by the receipt popup to decide whether a re-scan
+  needs confirmation).
 - Emits `created` after a create run with at least one success and zero
   failures.
 - Closing the popup (any way) calls `reset()`.
@@ -133,8 +153,9 @@ Keeps: trigger button with the saved-rambles badge, `assistantText` prop,
 saved-rambles loading and deletion, and `ramble-input-card` inside the shell's
 slot. Interpret calls `popupRef.interpret({ text, savedRambles })`. On
 `created`: delete loaded saved rambles (a failure shows a toast instead of the
-inline error), close, navigate to the transaction list. Closing resets the text
-and saved-rambles state; the shell resets the drafts.
+inline error), close, navigate to the transaction list. Closing stops a running
+recording through the input card (as today), then resets the text and
+saved-rambles state; the shell resets the drafts.
 
 Removed from the Dictate flow: the camera trigger, the hidden file input, the
 receipt preparation code, `rambleReceipts`, `maxReceipts`, and in
@@ -155,12 +176,14 @@ props. `canInterpret` becomes text or saved rambles.
   the limit.
 - Picking photos appends them to `receipts` and calls
   `interpret({ receipts, splitReceipts: splitItems })` immediately.
-- Any action that would re-interpret while drafts exist (adding a photo,
-  Scan again, toggling the chip with photos present) first asks for
+- Any action that re-interprets (adding a photo, Scan again, toggling the
+  chip with photos present) replaces the drafts. It first asks for
   confirmation with `assistant_receipt_rescan_title` /
-  `assistant_receipt_rescan_message`, because a re-scan replaces the drafts
-  and any edits made to them. Declining leaves everything as it is (a declined
-  photo pick is discarded; a declined chip toggle is reverted).
+  `assistant_receipt_rescan_message` only when the shell's `hasEditedDrafts`
+  is true, because that is when the replacement loses work. With untouched
+  drafts it re-interprets straight away, so a receipt spread over several
+  photos can be added one photo at a time. Declining leaves everything as it
+  is (a declined photo pick is discarded; a declined chip toggle is reverted).
 - Removing a photo keeps the drafts. Their `receiptIds` no longer match the
   removed photo, so nothing wrong gets attached; the user can Scan again.
 - Slot content: `ramble-receipt-strip.vue`.
@@ -236,6 +259,9 @@ and the receipt instructions change to:
 - The item amounts must add up exactly to `amount`.
 - `notes` must not repeat the items; use it only for other useful information
   or leave it null.
+- If the item lines cannot be read from a photo, return an empty `items`
+  array for that transaction and list the items in `notes` as in the non-split
+  instructions, so the user still gets the item list.
 - Transactions that come only from the text have an empty `items` array.
 
 When `splitReceipts` is false the prompt is exactly the current one.
@@ -260,22 +286,36 @@ Pure functions with no store or Nuxt alias imports, so they run under Node's
 built-in test runner. Every function that touches money takes `decimals`, the
 currency's decimal places; callers derive it once from the draft.
 
-- `roundAmount(value, decimals)` returns `Number(Number(value).toFixed(decimals))`
+Every amount goes through `roundAmount` before it is compared, summed or
+written, so the check and the request body agree: three items of 0.333
+against a total of 1.00 are a mismatch (0.33 + 0.33 + 0.33 = 0.99), and 0.004
+in a two-decimal currency is an invalid amount (it would post as 0.00).
+
+- `parseAmount(value)` returns the number for a number or a numeric string
+  with a dot or comma decimal separator, and `NaN` for anything else (empty,
+  `null`, junk). The editor's amount field yields strings and comma locales
+  type "1,50".
+- `roundAmount(value, decimals)` returns `Number(parseAmount(value).toFixed(decimals))`
   (`NaN` for a non-numeric value).
-- `sumReceiptItems(items, decimals)` returns the rounded sum of the item
-  amounts; a non-numeric amount counts as 0.
-- `getReceiptItemsProblem(items, total, decimals)` returns `'invalid_amount'`
-  when any item amount is not a finite number greater than zero, `'mismatch'`
-  when the rounded sum differs from the rounded total (a non-numeric total is
-  a mismatch), and `null` otherwise.
+- `sumReceiptItems(items, decimals)` returns the rounded sum of the *rounded*
+  item amounts; a non-numeric amount counts as 0.
+- `getReceiptItemsProblem(items, total, decimals)` checks in this order and
+  returns the first hit: `'missing_description'` when any description is
+  empty after trimming; `'invalid_amount'` when any item amount is not a
+  finite number or rounds to zero or below at `decimals`; `'mismatch'` when
+  `sumReceiptItems` differs from the rounded total (a non-numeric total is a
+  mismatch); `null` otherwise.
 - `formatReceiptItemsAsNotes(items, decimals)` returns the lines
-  `"<description> - <amount.toFixed(decimals)>"` joined by newlines.
+  `"<description> - <roundAmount(amount, decimals).toFixed(decimals)>"` joined
+  by newlines; a non-numeric amount is printed as typed.
 - `expandReceiptItems(item, items, decimals)` returns `item` unchanged when
   `items` has fewer than two entries. Otherwise it returns a deep clone of
   `item` whose `attributes.transactions` is one clone of the first split per
-  item, with `description` and `amount` (`Number(amount).toFixed(decimals)`)
-  replaced, and whose `attributes.group_title` is the first split's
-  description. Callers only expand items with no problem.
+  item, with `description` and `amount`
+  (`roundAmount(amount, decimals).toFixed(decimals)`) replaced, `notes` kept
+  on the first split and empty on the others, and whose
+  `attributes.group_title` is the first split's description. Callers only
+  expand items with no problem.
 
 `getDraftDecimals(split)` in `useTransactionAssistantDraft.js` returns
 `Account.getCurrencyDecimalPlaces(split.accountSource) ?? 2`. The draft split
@@ -285,7 +325,10 @@ matching how `applyAssistantTransaction` rounds converted amounts.
 Tests live in `front/tests/ReceiptItemUtils.test.js` and run with `npm test`
 from `front/`, a new script `node --test 'tests/**/*.test.js'`. (A bare
 directory argument, `node --test tests/`, fails on Node 21+, which treats it
-as a module path.)
+as a module path.) `front/package.json` has no `"type": "module"`, so the
+`import` syntax relies on Node's module detection: `npm test` needs Node 22.7
+or newer (23.6 is installed). They cover comma decimals, the 0.333 × 3 mismatch, the
+0.004 invalid amount, the empty description, and the check order.
 
 ### Draft shape
 
@@ -346,7 +389,8 @@ and `:decimals`.
   while it differs from `amount`, a `text-danger` line with
   `assistant_ramble_items_difference` and the signed difference. Then an
   "Add item" button (`assistant_ramble_add_item`, appends an empty item with a
-  new id) and a "Merge into one transaction" button.
+  new id; the empty row blocks saving until both fields are filled) and a
+  "Merge into one transaction" button.
 - The component never writes the amount. The receipt total and the items are
   both the user's to correct; the difference line tells them which.
 - Deleting never merges automatically. If the user deletes every item, the
@@ -362,7 +406,9 @@ and `getReceiptItemsProblem(items, amount, decimals)` is not `null`, show the
 toast `transaction.assistant_ramble_items_<problem>` and stay open.
 
 `applyEditedDraft` in `useRambleDrafts` copies `items` alongside `item` and
-sets `splitFallbackReason` to `null`.
+sets `splitFallbackReason` to `null`. That is intentional: once the user has
+saved the draft from the editor, the explanatory line describes a state they
+have taken over, whatever they changed.
 
 ### Create
 
@@ -379,9 +425,11 @@ Without a problem the request body becomes
 group title (`GroupValidation::validateGroupDescription`), so this is required
 for the write to succeed. Single-split writes are unchanged: the key is
 omitted. Side effect worth knowing: `transformFromApi` keeps
-`attributes.group_title` from Firefly, so editing an existing split group on
-the main transaction page now also sends its title back, which preserves it
-instead of dropping it. The verification list covers that case.
+`attributes.group_title` from Firefly, so saving an existing split group from
+the main transaction page now also sends its title back. This changes nothing
+in Firefly: its group update service only touches the title when the key is
+present in the body, and the value sent is the one it already has. The
+verification list keeps that case as a regression check.
 
 Receipt attachment uses the first journal of the created group and matches
 receipts by id, see Phase 1.
@@ -399,6 +447,7 @@ New keys in all eleven locale files (`en`, `ro`, `zh-CN`, `it`, `pt-BR`,
 - `transaction.assistant_ramble_merge_items`: "Merge into one transaction"
 - `transaction.assistant_ramble_items_mismatch`: "The items do not add up to the amount"
 - `transaction.assistant_ramble_items_invalid_amount`: "Every item needs an amount above zero"
+- `transaction.assistant_ramble_items_missing_description`: "Every item needs a description"
 - `transaction.assistant_ramble_split_fallback_foreign_currency`: "Receipts booked with a foreign amount are kept as one transaction with the items in notes"
 
 Existing root keys `description`, `amount` and `delete` are reused. The root
@@ -431,29 +480,36 @@ Everything else is verified by:
   load and delete saved rambles; no camera button or thumbnails remain; the
   body shows the interpreting state while the request runs.
 - Manual, receipt popup: tap the camera; the popup opens empty with the chip
-  and Add photo. Add two photos; interpreting starts without a further tap and
-  the body shows the interpreting state. Remove a photo, Scan again; add a
-  photo with drafts present and confirm the re-scan prompt appears; decline
-  and confirm nothing changed; accept and confirm it re-interprets. Create and
-  confirm the right photo is attached in Firefly.
+  and Add photo. Add a photo; interpreting starts without a further tap and
+  the body shows the interpreting state. Add a second photo without touching
+  the drafts: it re-interprets with no prompt, and the first draft disappears
+  behind the interpreting state until the new drafts arrive. Remove a photo, Scan again;
+  edit a draft, then add a photo and confirm the re-scan prompt appears;
+  decline and confirm nothing changed; accept and confirm it re-interprets.
+  Create and confirm the right photo is attached in Firefly.
 - Manual, chip on: scan a multi-item receipt whose items add up; the preview
   shows the split badge and item count; open the draft, change an item amount
   and see the difference line appear; add an item, delete an item; try to
   save with a difference and confirm the toast; fix it and save; merge and
   confirm notes are filled; re-scan and create; in Firefly the group has one
-  journal per item, the merchant as group title, the receipt total as sum and
-  the photo attached to the first journal.
+  journal per item, the merchant as group title, the receipt total as sum, any
+  receipt-level note on the first journal only, and the photo attached to the
+  first journal.
 - Manual, mismatch from the model: scan a receipt with a hand-written or
   unusual discount line (or edit an item in devtools); the preview shows the
   red mismatch line and no split badge; Create marks that draft as failed with
   the mismatch message and creates the others; fix it in the editor and retry.
-- Manual, invalid amount: set an item amount to 0 in the editor; the save is
-  blocked with the "above zero" toast.
+- Manual, invalid item: set an item amount to 0 in the editor; the save is
+  blocked with the "above zero" toast; 0.004 in a two-decimal currency gives
+  the same toast; clear an item's description and the save is blocked with
+  the "needs a description" toast; type an amount with a comma and it is
+  accepted.
 - Manual, chip off: the same receipt produces one transaction with the items
   in notes, identical to today, and the POST body has no `group_title`.
 - Manual, setting: Settings > Assistant toggle on; the chip starts on for the
   next scan; off again, the chip starts off.
-- Manual, main page: open an existing split transaction from the list, save
-  it without changes; Firefly keeps its group title.
+- Manual, main page (regression): open an existing split transaction from the
+  list, save it without changes; the PUT body carries `group_title` and
+  Firefly keeps the title.
 - Manual, dark theme: the receipt strip, chip, item editor and popup header
   look right with the dark theme toggled.
