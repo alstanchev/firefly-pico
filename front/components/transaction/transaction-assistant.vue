@@ -22,6 +22,7 @@
           :clearable="true"
         />
         <ramble :assistant-text="assistantText" />
+        <receipt-scan />
       </div>
 
       <template v-if="previewTags.length > 0 || parsed.isTodo">
@@ -56,6 +57,7 @@ import RomanianLanguageUtils from '~/utils/RomanianLanguageUtils.js'
 import { evalMath } from '~/utils/MathUtils.js'
 import { useFuzzySearchResource } from '~/composables/useFuzzySearch.js'
 import Ramble from '~/components/transaction/ramble.vue'
+import ReceiptScan from '~/components/transaction/receipt-scan.vue'
 
 const { t } = useI18n()
 const profileStore = useProfileStore()

@@ -28,19 +28,6 @@
         <div class="flex-1" />
 
         <van-button
-          v-if="receipts.length < maxReceipts"
-          round
-          size="small"
-          class="cursor-pointer ramble-icon-button"
-          :loading="isPreparingReceipts"
-          :disabled="isDisabled"
-          :title="$t('transaction.assistant_ramble_scan_receipt')"
-          @click="emit('addReceipt')"
-        >
-          <app-icon :icon="TablerIconConstants.camera" :size="16" />
-        </van-button>
-
-        <van-button
           v-if="appStore.isDesktopLayout"
           round
           size="small"
@@ -77,15 +64,6 @@
           </van-button>
           <van-button round size="small" plain type="danger" class="cursor-pointer ramble-icon-button" :disabled="isDisabled" :title="$t('delete')" @click="emit('deleteRamble', savedRamble)">
             <van-icon name="delete-o" size="15" />
-          </van-button>
-        </div>
-      </div>
-
-      <div v-if="receipts.length > 0" class="display-flex flex-wrap gap-2">
-        <div v-for="receipt in receipts" :key="receipt.id" class="ramble-receipt-thumb">
-          <img :src="receipt.dataUrl" :alt="$t('transaction.assistant_ramble_receipt')" />
-          <van-button round size="mini" type="danger" class="cursor-pointer ramble-receipt-remove" :disabled="isDisabled" :title="$t('delete')" @click="removeReceipt(receipt)">
-            <app-icon :icon="TablerIconConstants.close" :size="12" />
           </van-button>
         </div>
       </div>
@@ -147,19 +125,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  isPreparingReceipts: {
-    type: Boolean,
-    default: false,
-  },
-  maxReceipts: {
-    type: Number,
-    default: 0,
-  },
 })
 
-const emit = defineEmits(['interpret', 'loadSaved', 'deleteSaved', 'deleteRamble', 'addReceipt'])
+const emit = defineEmits(['interpret', 'loadSaved', 'deleteSaved', 'deleteRamble'])
 const rambleText = defineModel({ type: String, default: '' })
-const receipts = defineModel('receipts', { type: Array, default: () => [] })
 const profileStore = useProfileStore()
 const appStore = useAppStore()
 const speechTemporary = ref('')
@@ -205,7 +174,7 @@ const { startRecording, stopRecording, isRecording } = useSpeechRecognition({
   },
 })
 
-const canInterpret = computed(() => !!rambleText.value.trim() || props.savedRambles.length > 0 || receipts.value.length > 0)
+const canInterpret = computed(() => !!rambleText.value.trim() || props.savedRambles.length > 0)
 const formatCreatedAt = (createdAt) => (createdAt ? DateUtils.dateToUIWithTime(new Date(createdAt)) : '')
 
 const assistantRepository = new AssistantRepository()
@@ -266,10 +235,6 @@ const toggleRecording = () => {
   }
 
   startRecording()
-}
-
-const removeReceipt = (receipt) => {
-  receipts.value = receipts.value.filter((item) => item.id !== receipt.id)
 }
 
 const onInterpret = () => {
