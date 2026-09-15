@@ -1,6 +1,7 @@
 {
   "new": "新建",
   "save": "保存",
+  "cancel": "取消",
   "delete": "删除",
   "add": "添加",
   "search": "搜索",
@@ -120,6 +121,10 @@
     "assistant_receipt_split_hint": "请在添加照片前选择",
     "assistant_receipt_rescan_title": "重新扫描？",
     "assistant_receipt_rescan_message": "当前草稿及其修改将被替换。",
+    "assistant_receipt_crop_title": "裁剪小票",
+    "assistant_receipt_crop_hint": "拖动四角，使框内只保留小票",
+    "assistant_receipt_use_photo": "使用照片",
+    "assistant_receipt_recrop": "重新裁剪",
     "assistant_ramble_items_mismatch": "商品金额与总额不符",
     "assistant_ramble_items_invalid_amount": "每个商品的金额必须大于零",
     "assistant_ramble_items_missing_description": "每个商品都需要描述",

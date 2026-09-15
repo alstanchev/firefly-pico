@@ -10,9 +10,12 @@
       </div>
 
       <div v-if="receipts.length > 0" class="display-flex flex-wrap gap-2">
-        <div v-for="receipt in receipts" :key="receipt.id" class="ramble-receipt-thumb">
+        <div v-for="receipt in receipts" :key="receipt.id" class="ramble-receipt-thumb cursor-pointer" :title="$t('transaction.assistant_receipt_recrop')" @click="onRecrop(receipt)">
           <img :src="receipt.dataUrl" :alt="$t('transaction.assistant_ramble_receipt')" />
-          <van-button round size="mini" type="danger" class="cursor-pointer ramble-receipt-remove" :disabled="isDisabled" :title="$t('delete')" @click="removeReceipt(receipt)">
+          <div class="ramble-receipt-crop flex-center">
+            <app-icon :icon="TablerIconConstants.crop" :size="12" />
+          </div>
+          <van-button round size="mini" type="danger" class="cursor-pointer ramble-receipt-remove" :disabled="isDisabled" :title="$t('delete')" @click.stop="removeReceipt(receipt)">
             <app-icon :icon="TablerIconConstants.close" :size="12" />
           </van-button>
         </div>
@@ -58,12 +61,18 @@ const props = defineProps({
 })
 
 // The chip is a plain prop plus an event so the parent can refuse a toggle (declined re-scan confirmation) without a revert dance.
-const emit = defineEmits(['add', 'scan', 'toggleSplit'])
+const emit = defineEmits(['add', 'scan', 'toggleSplit', 'recrop'])
 const receipts = defineModel({ type: Array, default: () => [] })
 
 const onToggleSplit = () => {
   if (!props.isDisabled) {
     emit('toggleSplit')
+  }
+}
+
+const onRecrop = (receipt) => {
+  if (!props.isDisabled) {
+    emit('recrop', receipt)
   }
 }
 

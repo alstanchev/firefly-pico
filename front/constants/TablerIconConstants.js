@@ -58,6 +58,7 @@ export const icons = {
   close: 'IconX',
   magic: 'IconSparkles',
   camera: 'IconCamera',
+  crop: 'IconCrop',
   microphone: 'IconMicrophone',
   stop: 'IconPlayerStop',
   play: 'IconPlayerPlay',

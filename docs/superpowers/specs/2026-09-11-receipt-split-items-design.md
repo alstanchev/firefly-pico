@@ -461,6 +461,36 @@ Existing root keys `description`, `amount` and `delete` are reused. The root
 - `config.yaml` version becomes `0.2.4-dev6`.
 - `front/package.json` gains the `test` script.
 
+## Addendum (2026-09-15): cropping a photo before it is used
+
+The native camera sheet cannot be changed from a web page, so the crop
+happens in the app right after the photo is picked, before it is compressed,
+shown in the strip or sent to the model.
+
+- `ramble-receipt-crop-popup.vue` shows the picked photo scaled to fit with a
+  darkened mask outside a crop frame. Four corner handles resize the frame and
+  dragging its middle moves it; pointer events cover touch and mouse. Cancel
+  discards that photo, "Use photo" confirms. It exposes
+  `crop(file, initialCrop) -> Promise<crop | null>`; closing the popup any
+  other way resolves `null`. The frame defaults to the whole photo, so a
+  well-framed photo costs one extra tap.
+- The crop is `{ x, y, width, height }` as fractions of the oriented image.
+  The pure math lives in `front/utils/CropUtils.js` (`fullCrop`, `moveCrop`,
+  `resizeCrop` with a 5% minimum size, `cropToPixels`, `isSameCrop`) and is
+  covered by `front/tests/CropUtils.test.js`.
+- `compressImageToJpeg` takes an optional `crop` and cuts that region from the
+  full photo before downscaling, so the receipt print keeps more detail than
+  the uncropped photo would.
+- Each receipt in the strip keeps `original` (the picked file) and `crop`, so
+  tapping a thumbnail reopens the frame on the original photo. A changed frame
+  re-compresses the photo (same receipt id) and re-scans, with the same
+  "Scan again?" confirmation rule as adding a photo. An unchanged frame does
+  nothing.
+- New i18n keys under `transaction`: `assistant_receipt_crop_title`,
+  `assistant_receipt_crop_hint`, `assistant_receipt_use_photo`,
+  `assistant_receipt_recrop`.
+- Out of scope: rotation and perspective correction.
+
 ## Out of scope
 
 - Per-item category, budget or tags.

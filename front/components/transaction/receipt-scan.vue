@@ -24,9 +24,12 @@
         @add="inputRef?.click()"
         @scan="onScanAgain"
         @toggle-split="onToggleSplit"
+        @recrop="onRecrop"
       />
     </template>
   </ramble-drafts-popup>
+
+  <ramble-receipt-crop-popup ref="cropPopupRef" />
 </template>
 
 <script setup>
@@ -35,8 +38,10 @@ import RouteConstants from '~/constants/RouteConstants'
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
 import RambleDraftsPopup from '~/components/transaction/ramble/ramble-drafts-popup.vue'
 import RambleReceiptStrip from '~/components/transaction/ramble/ramble-receipt-strip.vue'
+import RambleReceiptCropPopup from '~/components/transaction/ramble/ramble-receipt-crop-popup.vue'
 import UIUtils from '~/utils/UIUtils.js'
 import { compressImageToJpeg, blobToDataUrl } from '~/utils/ImageUtils.js'
+import { isSameCrop } from '~/utils/CropUtils.js'
 import { getGUID } from '~/utils/Utils.js'
 
 const { t } = useI18n()
@@ -47,6 +52,7 @@ const profileStore = useProfileStore()
 const maxReceipts = 3
 const inputRef = ref(null)
 const popupRef = ref(null)
+const cropPopupRef = ref(null)
 const show = ref(false)
 const receipts = ref([])
 const isPreparing = ref(false)
@@ -87,6 +93,21 @@ const onToggleSplit = async () => {
   }
 }
 
+// The original file stays on the receipt so the frame can be adjusted later; only the cropped JPEG is uploaded and sent to the model.
+const prepareReceipt = async (file, crop, id = getGUID()) => {
+  isPreparing.value = true
+  try {
+    const blob = await compressImageToJpeg(file, { crop })
+    const jpeg = new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    return { id, original: file, crop, file: jpeg, dataUrl: await blobToDataUrl(jpeg) }
+  } catch {
+    UIUtils.showToastError(t('transaction.assistant_ramble_receipt_failed'))
+    return null
+  } finally {
+    isPreparing.value = false
+  }
+}
+
 const onSelected = async (event) => {
   const selected = Array.from(event.target.files ?? [])
   event.target.value = ''
@@ -102,23 +123,42 @@ const onSelected = async (event) => {
     return
   }
 
-  isPreparing.value = true
-  try {
-    const prepared = []
-    for (const file of files) {
-      const blob = await compressImageToJpeg(file)
-      const jpeg = new File([blob], `receipt-${Date.now()}-${prepared.length}.jpg`, { type: 'image/jpeg' })
-      prepared.push({ id: getGUID(), file: jpeg, dataUrl: await blobToDataUrl(jpeg) })
+  const prepared = []
+  for (const file of files) {
+    // The user frames the receipt before anything is compressed or sent; cancelling the frame skips that photo.
+    const crop = await cropPopupRef.value?.crop(file)
+    if (!crop) {
+      continue
     }
-    receipts.value = [...receipts.value, ...prepared]
-  } catch {
-    UIUtils.showToastError(t('transaction.assistant_ramble_receipt_failed'))
+    const receipt = await prepareReceipt(file, crop)
+    if (receipt) {
+      prepared.push(receipt)
+    }
+  }
+  if (prepared.length === 0) {
     return
-  } finally {
-    isPreparing.value = false
   }
 
+  receipts.value = [...receipts.value, ...prepared]
   // Photos are interpreted as soon as they are picked.
+  await scan()
+}
+
+// Tapping a thumbnail reopens the frame on the original photo. A changed frame is a new photo for the assistant, so it re-scans.
+const onRecrop = async (receipt) => {
+  if (!(await confirmRescan())) {
+    return
+  }
+  const crop = await cropPopupRef.value?.crop(receipt.original, receipt.crop)
+  if (!crop || isSameCrop(crop, receipt.crop)) {
+    return
+  }
+  const updated = await prepareReceipt(receipt.original, crop, receipt.id)
+  if (!updated) {
+    return
+  }
+
+  receipts.value = receipts.value.map((existing) => (existing.id === receipt.id ? updated : existing))
   await scan()
 }
 

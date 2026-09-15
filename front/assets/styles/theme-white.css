@@ -1952,6 +1952,102 @@ body {
     padding: 0;
 }
 
+.ramble-receipt-crop {
+    position: absolute;
+    left: 3px;
+    bottom: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    pointer-events: none;
+}
+
+.ramble-crop-stage {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ramble-crop-frame {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    max-width: 100%;
+}
+
+.ramble-crop-frame img {
+    display: block;
+    max-width: 100%;
+    max-height: 62vh;
+    -webkit-user-drag: none;
+}
+
+.ramble-crop-mask {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ramble-crop-shade {
+    position: absolute;
+    box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.55);
+}
+
+.ramble-crop-rect {
+    position: absolute;
+    outline: 2px solid #fff;
+    outline-offset: -1px;
+    cursor: move;
+}
+
+.ramble-crop-handle {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+}
+
+.ramble-crop-handle::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--van-primary-color);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.ramble-crop-handle-nw {
+    left: 0;
+    top: 0;
+    cursor: nwse-resize;
+}
+
+.ramble-crop-handle-ne {
+    left: 100%;
+    top: 0;
+    cursor: nesw-resize;
+}
+
+.ramble-crop-handle-sw {
+    left: 0;
+    top: 100%;
+    cursor: nesw-resize;
+}
+
+.ramble-crop-handle-se {
+    left: 100%;
+    top: 100%;
+    cursor: nwse-resize;
+}
+
 .ramble-section-label {
     font-size: 12px;
     font-weight: 600;
