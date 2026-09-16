@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.4-dev7
+
+- Removed the "Split into items" option from receipt scanning, along with
+  the items editor and the "Split receipts into items by default"
+  setting. A scanned receipt is one transaction again, with the purchased
+  items listed in its notes. The camera buttons and the crop step stay.
+- Opening an existing transaction goes straight to edit mode again, as
+  before 0.2.4-dev2. The read-only view mode, with its swipe and
+  previous / next navigation, is now an opt-in toggle under Settings >
+  Transactions ("Open existing transactions read-only, with an Edit
+  button"). The toggle is saved only on the device and is not part of the
+  synced profile, so it can be switched on on a phone while the desktop
+  keeps opening transactions for editing.
+
 ## 0.2.4-dev6
 
 - Receipt scanning has its own popup: tap the camera, choose whether to
