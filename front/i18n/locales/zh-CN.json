@@ -258,6 +258,9 @@
       "copy_tag_to_description": "选择标签时将其复制到描述中",
       "copy_tag_to_category": "选择标签时将其复制到类别中",
       "copy_category_to_description": "选择类别时将其复制到描述中",
+      "opening": "打开交易",
+      "open_in_view_mode": "以只读方式打开已有交易，并显示编辑按钮",
+      "open_in_view_mode_info": "仅保存在此设备上。关闭时交易直接以编辑模式打开；开启适合手机，在此模式下可滑动切换交易。",
       "quick_amounts": {
         "title": "快速交易金额",
         "value": "值"

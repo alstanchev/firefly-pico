@@ -273,6 +273,9 @@
       "copy_tag_to_description": "Copier l'etiquette dans la description",
       "copy_tag_to_category": "Copier l'etiquette dans la catégorie",
       "copy_category_to_description": "Copier la catégorie dans la description",
+      "opening": "Ouverture d'une transaction",
+      "open_in_view_mode": "Ouvrir les transactions existantes en lecture seule, avec un bouton Modifier",
+      "open_in_view_mode_info": "Enregistré uniquement sur cet appareil. Désactivé, les transactions s'ouvrent directement en mode édition ; activé convient aux téléphones, où ce mode permet de balayer d'une transaction à l'autre.",
       "quick_amounts": {
         "title": "Montant des transactions",
         "value": "Valeur"

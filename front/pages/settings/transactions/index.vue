@@ -31,6 +31,12 @@
         <app-boolean v-model="copyCategoryToDescription" :label="$t('settings.transactions.copy_category_to_description')" />
       </van-cell-group>
 
+      <van-cell-group inset>
+        <div class="van-cell-group-title mb-0">{{ $t('settings.transactions.opening') }}:</div>
+        <div class="info">{{ $t('settings.transactions.open_in_view_mode_info') }}</div>
+        <app-boolean v-model="openTransactionsInViewMode" :label="$t('settings.transactions.open_in_view_mode')" />
+      </van-cell-group>
+
       <app-button-form-save />
     </van-form>
   </div>
@@ -53,11 +59,13 @@ const profileStore = useProfileStore()
 const copyCategoryToDescription = ref(false)
 const copyTagToDescription = ref(false)
 const copyTagToCategory = ref(false)
+const openTransactionsInViewMode = ref(false)
 
 const syncedSettings = [
   { store: profileStore, path: 'copyCategoryToDescription', ref: copyCategoryToDescription },
   { store: profileStore, path: 'copyTagToDescription', ref: copyTagToDescription },
   { store: profileStore, path: 'copyTagToCategory', ref: copyTagToCategory },
+  { store: profileStore, path: 'openTransactionsInViewMode', ref: openTransactionsInViewMode },
 ]
 
 watchSettingsStore(syncedSettings)

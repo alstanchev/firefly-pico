@@ -274,6 +274,9 @@
       "copy_tag_to_description": "When I select a Tag copy it into Description",
       "copy_tag_to_category": "When I select a Tag copy it into Category",
       "copy_category_to_description": "When I select a Category copy it into Description",
+      "opening": "Opening a transaction",
+      "open_in_view_mode": "Open existing transactions read-only, with an Edit button",
+      "open_in_view_mode_info": "Saved only on this device. Off, transactions open in edit mode right away; on suits phones, where swiping between transactions works in this mode.",
       "quick_amounts": {
         "title": "Quick transaction amounts",
         "value": "Value"

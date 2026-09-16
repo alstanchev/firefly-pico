@@ -58,6 +58,9 @@ export const useProfileStore = defineStore('profile', () => {
 
   const showTagSelectAsGrid = useLocalStorage('showTagSelectAsGrid', true)
 
+  // Device-only (omitted from the synced profile): open existing transactions read-only, with an Edit button
+  const openTransactionsInViewMode = useLocalStorage('openTransactionsInViewMode', false)
+
   const numberFormat = useLocalStorage('numberFormat', NUMBER_FORMAT.eu)
   const weekStartsOn = useLocalStorage('weekStartsOn', 0)
 
@@ -110,7 +113,7 @@ export const useProfileStore = defineStore('profile', () => {
   }
 
   function getProfileSettings() {
-    let omitList = ['dashboard.showAccountAmounts', 'profileActiveId', 'profileList']
+    let omitList = ['dashboard.showAccountAmounts', 'openTransactionsInViewMode', 'profileActiveId', 'profileList']
     let data = cloneDeep(useProfileStore().$state)
     let profile = profileList.value.find((item) => item.id === profileActiveId.value)
 
@@ -204,6 +207,7 @@ export const useProfileStore = defineStore('profile', () => {
     copyTagToDescription,
     copyTagToCategory,
     showTagSelectAsGrid,
+    openTransactionsInViewMode,
     numberFormat,
     weekStartsOn,
     lowerCaseTransactionDescription,

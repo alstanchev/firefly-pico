@@ -273,6 +273,9 @@
       "copy_tag_to_description": "Quando seleziono un tag, copialo nella descrizione",
       "copy_tag_to_category": "Quando seleziono un tag, copialo nella categoria",
       "copy_category_to_description": "Quando seleziono una categoria, copiala nella descrizione",
+      "opening": "Apertura di una transazione",
+      "open_in_view_mode": "Apri le transazioni esistenti in sola lettura, con un pulsante Modifica",
+      "open_in_view_mode_info": "Salvato solo su questo dispositivo. Disattivato, le transazioni si aprono subito in modalità modifica; attivato è adatto ai telefoni, dove in questa modalità si può scorrere tra le transazioni.",
       "quick_amounts": {
         "title": "Importi rapidi transazione",
         "value": "Valore"

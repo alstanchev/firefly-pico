@@ -67,11 +67,13 @@ import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import { useI18n } from '#imports'
 import TransactionForm from '~/components/transaction/TransactionForm.vue'
 import { useTransactionListStore } from '~/stores/transactionListStore.js'
+import { useProfileStore } from '~/stores/profileStore.js'
 import { useSwipeNavigation } from '~/composables/useSwipeNavigation.js'
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 
 const route = useRoute()
 const appStore = useAppStore()
+const profileStore = useProfileStore()
 const transactionListStore = useTransactionListStore()
 
 const assistantText = ref('')
@@ -108,7 +110,7 @@ const isCloning = computed(() => !!get(route.query, 'transaction_id'))
 const isSplitTransaction = computed(() => Transaction.isSplitPayment(item.value))
 // route.params.id is available before the fetch resolves, so an existing transaction never flashes as an enabled "add" form
 const hasItemId = computed(() => !!itemId.value || !!route.params.id)
-const isViewMode = computed(() => hasItemId.value && !isCloning.value && !isEditing.value)
+const isViewMode = computed(() => profileStore.openTransactionsInViewMode && hasItemId.value && !isCloning.value && !isEditing.value)
 
 // ----- Previous / next transaction (view mode only), following the order of the transaction list -----
 

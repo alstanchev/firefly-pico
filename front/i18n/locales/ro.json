@@ -273,6 +273,9 @@
       "copy_tag_to_description": "Când selectez o Etichetă, copiază în Descriere",
       "copy_tag_to_category": "Când selectez o Etichetă, copiază în Categorie",
       "copy_category_to_description": "Când selectez o Categorie, copiază în Descriere",
+      "opening": "Deschiderea unei tranzacții",
+      "open_in_view_mode": "Deschide tranzacțiile existente doar în citire, cu un buton Editează",
+      "open_in_view_mode_info": "Salvat doar pe acest dispozitiv. Oprit, tranzacțiile se deschid direct în modul de editare; pornit se potrivește telefoanelor, unde în acest mod se poate glisa între tranzacții.",
       "quick_amounts": {
         "title": "Sume rapide tranzacții",
         "value": "Valoare"

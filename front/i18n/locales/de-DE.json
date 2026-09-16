@@ -274,6 +274,9 @@
       "copy_tag_to_description": "Wenn ich einen Tag auswähle, diesen in die Beschreibung kopieren",
       "copy_tag_to_category": "Wenn ich einen Tag auswähle, diesen in die Kategorie kopieren",
       "copy_category_to_description": "Wenn ich eine Kategorie auswähle, diese in die Beschreibung kopieren",
+      "opening": "Transaktion öffnen",
+      "open_in_view_mode": "Bestehende Transaktionen schreibgeschützt öffnen, mit Bearbeiten-Button",
+      "open_in_view_mode_info": "Wird nur auf diesem Gerät gespeichert. Aus: Transaktionen öffnen sich direkt im Bearbeitungsmodus; an eignet sich für Telefone, wo in diesem Modus zwischen Transaktionen gewischt werden kann.",
       "quick_amounts": {
         "title": "Schnell-Tranksaktions-Konti",
         "value": "Wert"

@@ -273,6 +273,9 @@
       "copy_tag_to_description": "Quando seleciono uma Tag, copiá-la para a Descrição",
       "copy_tag_to_category": "Quando seleciono uma Tag, copiá-la para a Categoria",
       "copy_category_to_description": "Quando seleciono uma Categoria, copiá-la para a Descrição",
+      "opening": "Abrir uma transação",
+      "open_in_view_mode": "Abrir transações existentes somente leitura, com um botão Editar",
+      "open_in_view_mode_info": "Salvo apenas neste dispositivo. Desligado, as transações abrem direto no modo de edição; ligado é ideal para celulares, onde neste modo é possível deslizar entre transações.",
       "quick_amounts": {
         "title": "Valores rápidos de transação",
         "value": "Valor"

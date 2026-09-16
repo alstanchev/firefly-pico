@@ -273,6 +273,9 @@
       "copy_tag_to_description": "Gdy zaznaczę Tag, skopiuj go do pola Opis",
       "copy_tag_to_category": "Gdy zaznaczę Tag, skopiuj go do pola Kategoria",
       "copy_category_to_description": "Gdy wybieram Kategorię, skopiuj ją do pola Opis",
+      "opening": "Otwieranie transakcji",
+      "open_in_view_mode": "Otwieraj istniejące transakcje tylko do odczytu, z przyciskiem Edytuj",
+      "open_in_view_mode_info": "Zapisywane tylko na tym urządzeniu. Wyłączone: transakcje otwierają się od razu w trybie edycji; włączone sprawdza się na telefonach, gdzie w tym trybie można przesuwać palcem między transakcjami.",
       "quick_amounts": {
         "title": "Szybkie kwoty transakcji",
         "value": "Wartość"
