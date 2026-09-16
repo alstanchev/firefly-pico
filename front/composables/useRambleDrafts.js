@@ -5,8 +5,7 @@ import AttachmentRepository from '~/repository/AttachmentRepository.js'
 import TransactionRepository from '~/repository/TransactionRepository.js'
 import TransactionTransformer from '~/transformers/TransactionTransformer.js'
 import { useRambleTransactionResolver } from '~/composables/useRambleTransactionResolver.js'
-import { buildReceiptDraft, getDraftDecimals, useTransactionAssistantDraft } from '~/composables/useTransactionAssistantDraft.js'
-import { expandReceiptItems, getReceiptItemsProblem } from '~/utils/ReceiptItemUtils.js'
+import { useTransactionAssistantDraft } from '~/composables/useTransactionAssistantDraft.js'
 import UIUtils from '~/utils/UIUtils.js'
 
 export const draftStatus = {
@@ -94,7 +93,7 @@ export const useRambleDrafts = () => {
     currentCreateIndex.value = 0
   }
 
-  const interpret = async ({ text = '', savedRambles = [], receipts = [], splitReceipts = false }) => {
+  const interpret = async ({ text = '', savedRambles = [], receipts = [] }) => {
     const hasSavedText = savedRambles.some((ramble) => ramble.text?.trim())
     if (!text.trim() && !hasSavedText && receipts.length === 0) {
       return
@@ -118,7 +117,6 @@ export const useRambleDrafts = () => {
         model: profileStore.assistantLlmModel,
         context: getRambleContext(),
         receiptImages: receipts.map((receipt) => receipt.dataUrl),
-        splitReceipts,
       })
       if (session !== sessionId.value) {
         return
@@ -129,14 +127,10 @@ export const useRambleDrafts = () => {
         if (session !== sessionId.value) {
           return
         }
-        const built = await buildTransactionItemFromAssistant(transaction)
-        const { item, items, splitFallbackReason } = buildReceiptDraft(built, transaction.raw?.items, splitReceipts)
         newDrafts.push({
           id: transaction.id,
           assistant: transaction,
-          item,
-          items,
-          splitFallbackReason,
+          item: await buildTransactionItemFromAssistant(transaction),
           receiptIds: getReceiptIds(transaction, receipts),
           status: draftStatus.pending,
           error: null,
@@ -178,8 +172,6 @@ export const useRambleDrafts = () => {
     drafts.value[index] = {
       ...existing,
       item: cloneDeep(editedDraft.item),
-      items: cloneDeep(editedDraft.items ?? []),
-      splitFallbackReason: null,
       status: keepsSuccess ? draftStatus.success : draftStatus.pending,
       error: keepsSuccess ? existing.error : null,
     }
@@ -234,17 +226,7 @@ export const useRambleDrafts = () => {
         drafts.value[index].error = null
 
         try {
-          const split = drafts.value[index].item.attributes.transactions[0]
-          const items = drafts.value[index].items ?? []
-          const decimals = getDraftDecimals(split)
-          const problem = items.length > 0 ? getReceiptItemsProblem(items, split.amount, decimals) : null
-          if (problem) {
-            // Never post a group that Firefly would reject or that books a different total than the receipt; the retry flow picks it up after the user fixes it.
-            drafts.value[index].status = draftStatus.error
-            drafts.value[index].error = t(`transaction.assistant_ramble_items_${problem}`)
-            continue
-          }
-          const requestData = TransactionTransformer.transformToApi(expandReceiptItems(cloneDeep(drafts.value[index].item), items, decimals))
+          const requestData = TransactionTransformer.transformToApi(cloneDeep(drafts.value[index].item))
           const response = await transactionRepository.insert(requestData)
           if (session !== sessionId.value) {
             return { successCount, failedCount: failedCount.value }

@@ -1,14 +1,6 @@
 <template>
   <van-cell-group inset class="no-margin overflow-hidden">
     <div class="p-3 display-flex flex-column gap-2">
-      <div class="flex-center-vertical flex-wrap gap-2">
-        <van-tag round size="medium" :type="splitItems ? 'primary' : 'default'" :plain="!splitItems" class="cursor-pointer assistant-tag" @click="onToggleSplit">
-          <app-icon :icon="TablerIconConstants.list" :size="14" />
-          <span>{{ $t('transaction.assistant_receipt_split') }}</span>
-        </van-tag>
-        <div class="text-size-12 text-muted">{{ $t('transaction.assistant_receipt_split_hint') }}</div>
-      </div>
-
       <div v-if="receipts.length > 0" class="display-flex flex-wrap gap-2">
         <div v-for="receipt in receipts" :key="receipt.id" class="ramble-receipt-thumb cursor-pointer" :title="$t('transaction.assistant_receipt_recrop')" @click="onRecrop(receipt)">
           <img :src="receipt.dataUrl" :alt="$t('transaction.assistant_ramble_receipt')" />
@@ -42,10 +34,6 @@
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
 
 const props = defineProps({
-  splitItems: {
-    type: Boolean,
-    default: false,
-  },
   maxReceipts: {
     type: Number,
     default: 0,
@@ -60,15 +48,8 @@ const props = defineProps({
   },
 })
 
-// The chip is a plain prop plus an event so the parent can refuse a toggle (declined re-scan confirmation) without a revert dance.
-const emit = defineEmits(['add', 'scan', 'toggleSplit', 'recrop'])
+const emit = defineEmits(['add', 'scan', 'recrop'])
 const receipts = defineModel({ type: Array, default: () => [] })
-
-const onToggleSplit = () => {
-  if (!props.isDisabled) {
-    emit('toggleSplit')
-  }
-}
 
 const onRecrop = (receipt) => {
   if (!props.isDisabled) {

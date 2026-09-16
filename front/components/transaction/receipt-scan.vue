@@ -15,17 +15,7 @@
     @created="onCreated"
   >
     <template #default="{ isInterpreting }">
-      <ramble-receipt-strip
-        v-model="receipts"
-        :split-items="splitItems"
-        :max-receipts="maxReceipts"
-        :is-preparing="isPreparing"
-        :is-disabled="isInterpreting"
-        @add="inputRef?.click()"
-        @scan="onScanAgain"
-        @toggle-split="onToggleSplit"
-        @recrop="onRecrop"
-      />
+      <ramble-receipt-strip v-model="receipts" :max-receipts="maxReceipts" :is-preparing="isPreparing" :is-disabled="isInterpreting" @add="inputRef?.click()" @scan="onScanAgain" @recrop="onRecrop" />
     </template>
   </ramble-drafts-popup>
 
@@ -46,7 +36,6 @@ import { getGUID } from '~/utils/Utils.js'
 
 const { t } = useI18n()
 const appStore = useAppStore()
-const profileStore = useProfileStore()
 
 // Three photos keep the base64 request well under PHP's 8M post limit and the 60 s LLM timeout.
 const maxReceipts = 3
@@ -56,16 +45,13 @@ const cropPopupRef = ref(null)
 const show = ref(false)
 const receipts = ref([])
 const isPreparing = ref(false)
-const splitItems = ref(false)
 
 const openPopup = () => {
-  // The setting only seeds the chip; the chip decides per scan.
-  splitItems.value = !!profileStore.assistantSplitReceipts
   show.value = true
 }
 
 const scan = () => {
-  return popupRef.value?.interpret({ receipts: receipts.value, splitReceipts: splitItems.value })
+  return popupRef.value?.interpret({ receipts: receipts.value })
 }
 
 // A re-scan replaces the drafts. It is confirmed only when that loses work (a draft edited, removed or created),
@@ -79,16 +65,6 @@ const confirmRescan = async () => {
 
 const onScanAgain = async () => {
   if (await confirmRescan()) {
-    await scan()
-  }
-}
-
-const onToggleSplit = async () => {
-  if (receipts.value.length > 0 && !(await confirmRescan())) {
-    return
-  }
-  splitItems.value = !splitItems.value
-  if (receipts.value.length > 0) {
     await scan()
   }
 }
