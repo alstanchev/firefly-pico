@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.4-dev8
+
+- Receipt photos are sent to the assistant only when you tap "Scan", not
+  as soon as each photo is picked. A receipt spread over two or three
+  photos can be added, framed and re-framed first and is then read in a
+  single request instead of one request per photo. The button is now
+  labelled "Scan" and the empty state asks you to add the photos, then
+  tap Scan.
+
 ## 0.2.4-dev7
 
 - Removed the "Split into items" option from receipt scanning, along with
