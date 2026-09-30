@@ -15,7 +15,7 @@
     @created="onCreated"
   >
     <template #default="{ isInterpreting }">
-      <ramble-receipt-strip v-model="receipts" :max-receipts="maxReceipts" :is-preparing="isPreparing" :is-disabled="isInterpreting" @add="inputRef?.click()" @scan="onScanAgain" @recrop="onRecrop" />
+      <ramble-receipt-strip v-model="receipts" :max-receipts="maxReceipts" :is-preparing="isPreparing" :is-disabled="isInterpreting" @add="inputRef?.click()" @scan="onScan" @recrop="onRecrop" />
     </template>
   </ramble-drafts-popup>
 
@@ -54,8 +54,8 @@ const scan = () => {
   return popupRef.value?.interpret({ receipts: receipts.value })
 }
 
-// A re-scan replaces the drafts. It is confirmed only when that loses work (a draft edited, removed or created),
-// so a receipt spread over several photos can be added one photo at a time without a prompt each time.
+// Photos are only sent to the model when the user taps Scan, so several photos of one receipt cost a single request.
+// A scan replaces the drafts and is confirmed only when that loses work (a draft edited, removed or created).
 const confirmRescan = async () => {
   if (!popupRef.value?.hasEditedDrafts) {
     return true
@@ -63,7 +63,7 @@ const confirmRescan = async () => {
   return UIUtils.showDeleteConfirmation(t('transaction.assistant_receipt_rescan_title'), t('transaction.assistant_receipt_rescan_message'))
 }
 
-const onScanAgain = async () => {
+const onScan = async () => {
   if (await confirmRescan()) {
     await scan()
   }
@@ -95,9 +95,6 @@ const onSelected = async (event) => {
   if (files.length === 0) {
     return
   }
-  if (!(await confirmRescan())) {
-    return
-  }
 
   const prepared = []
   for (const file of files) {
@@ -111,20 +108,11 @@ const onSelected = async (event) => {
       prepared.push(receipt)
     }
   }
-  if (prepared.length === 0) {
-    return
-  }
-
   receipts.value = [...receipts.value, ...prepared]
-  // Photos are interpreted as soon as they are picked.
-  await scan()
 }
 
-// Tapping a thumbnail reopens the frame on the original photo. A changed frame is a new photo for the assistant, so it re-scans.
+// Tapping a thumbnail reopens the frame on the original photo.
 const onRecrop = async (receipt) => {
-  if (!(await confirmRescan())) {
-    return
-  }
   const crop = await cropPopupRef.value?.crop(receipt.original, receipt.crop)
   if (!crop || isSameCrop(crop, receipt.crop)) {
     return
@@ -135,7 +123,6 @@ const onRecrop = async (receipt) => {
   }
 
   receipts.value = receipts.value.map((existing) => (existing.id === receipt.id ? updated : existing))
-  await scan()
 }
 
 const onCreated = async () => {
