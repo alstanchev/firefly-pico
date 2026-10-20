@@ -127,8 +127,12 @@ export const useRambleTransactionResolver = () => {
 
   const getRambleContext = () => rambleContext.value
 
-  const resolveAssistantAccount = (accountName) => {
-    return accountName ? (resolveAccount(accountName) ?? undefined) : undefined
+  // An unmatched name becomes a new account of the type the transaction needs in that slot; Firefly creates it when the draft is saved.
+  const resolveAssistantAccount = (accountName, newAccountType) => {
+    if (!accountName?.trim()) {
+      return undefined
+    }
+    return resolveAccount(accountName) ?? (newAccountType ? Account.getNew(accountName, newAccountType) : undefined)
   }
 
   const resolveRambleTransaction = (rawTransaction, index) => {
@@ -137,10 +141,11 @@ export const useRambleTransactionResolver = () => {
     const category = resolveCategory(rawTransaction.categoryName)
     const budget = resolveBudget(rawTransaction.budgetName)
     const type = resolveTransactionType(rawTransaction.type)
+    const typeCode = (type ?? Transaction.types.expense).code
     const fixedAccounts = Transaction.attemptAccountFixOnTypeChange(
       type ?? Transaction.types.expense,
-      resolveAssistantAccount(rawTransaction.sourceAccountName) ?? profileStore.defaultAccountSource,
-      resolveAssistantAccount(rawTransaction.destinationAccountName) ?? profileStore.defaultAccountDestination,
+      resolveAssistantAccount(rawTransaction.sourceAccountName, typeCode === Transaction.types.income.code ? Account.types.revenue : null) ?? profileStore.defaultAccountSource,
+      resolveAssistantAccount(rawTransaction.destinationAccountName, typeCode === Transaction.types.expense.code ? Account.types.expense : null) ?? profileStore.defaultAccountDestination,
     )
     const assistantCurrency = resolveCurrency(rawTransaction.currencyCode)
     const rawDescription = rawTransaction.description || rawTransaction.templateName || rawTransaction.categoryName || rawTransaction.tagNames?.[0] || 'Transaction'

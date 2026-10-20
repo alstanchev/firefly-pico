@@ -5,7 +5,8 @@
       <div v-if="transaction.error" class="text-size-12 text-danger word-break-word flex-1-w">{{ transaction.error }}</div>
     </div>
 
-    <div v-if="categorySuggestion || tagSuggestions.length" class="text-size-12 text-muted px-3 pt-2">
+    <div v-if="newAccountName || categorySuggestion || tagSuggestions.length" class="text-size-12 text-muted px-3 pt-2">
+      <div v-if="newAccountName">{{ $t('transaction.assistant_ramble_new_account', { name: newAccountName }) }}</div>
       <div v-if="categorySuggestion">{{ $t('transaction.assistant_ramble_unmatched_category', { name: categorySuggestion }) }}</div>
       <div v-if="tagSuggestions.length">{{ $t('transaction.assistant_ramble_unmatched_tags', { names: tagSuggestions.join(', ') }) }}</div>
     </div>
@@ -17,6 +18,7 @@
 <script setup>
 import { get } from 'lodash-es'
 import TransactionListItem from '~/components/list-items/transaction-list-item.vue'
+import Account from '~/models/Account.js'
 
 const emit = defineEmits(['delete', 'edit'])
 const transaction = defineModel({
@@ -30,6 +32,12 @@ const tagSuggestions = computed(() => get(transaction.value, 'item.attributes.tr
 const isCreating = computed(() => transaction.value.status === 'creating')
 const isCreated = computed(() => transaction.value.status === 'success')
 const isFailed = computed(() => transaction.value.status === 'error')
+
+const newAccountName = computed(() => {
+  if (isCreated.value) return null
+  const split = get(transaction.value, 'item.attributes.transactions.0')
+  return Account.getDisplayName([split?.accountSource, split?.accountDestination].find((account) => Account.isNew(account))) ?? null
+})
 
 const statusClass = computed(() => {
   if (isCreated.value) {

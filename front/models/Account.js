@@ -6,6 +6,7 @@ import { get } from 'lodash-es'
 import Transaction from '~/models/Transaction'
 import { NUMBER_FORMAT } from '~/utils/NumberUtils.js'
 import Currency from '~/models/Currency.js'
+import LanguageUtils from '~/utils/LanguageUtils.js'
 
 const toAmount = (value) => {
   if (value === null || value === undefined || value === '') return null
@@ -206,6 +207,27 @@ export default class Account extends BaseModel {
 
   static getDisplayName(account) {
     return get(account, 'attributes.name')
+  }
+
+  // Mirrors the account form: optional lower-casing and accent stripping from the profile settings
+  static formatName(name) {
+    const profileStore = useProfileStore()
+    name = (name ?? '').trim()
+    if (profileStore.lowerCaseAccountName) name = name.toLowerCase()
+    if (profileStore.stripAccents) name = LanguageUtils.removeAccents(name)
+    return name
+  }
+
+  // An account that only exists by name so far. Firefly creates it when a transaction is saved with the name alone (expense and revenue accounts only).
+  static getNew(name, type) {
+    const account = new Account().getEmpty()
+    account.attributes.name = this.formatName(name)
+    account.attributes.type = type
+    return account
+  }
+
+  static isNew(account) {
+    return !!account && !account.id
   }
 
   static getCurrency(account) {

@@ -10,7 +10,10 @@
     :columns="appStore.gridColumns"
     :is-multi-select="props.isMultiSelect"
     :get-display-value="getDisplayValue"
+    :create-name="createName"
+    :is-creating="isCreating"
     v-bind="dynamicAttrs"
+    @create="onCreate"
   >
     <template #left-icon>
       <app-icon :icon="TablerIconConstants.account" :size="20" />
@@ -99,6 +102,7 @@ import { IconRefresh } from '@tabler/icons-vue'
 import { isEqual } from 'lodash-es/lang'
 
 import TablerIconConstants from '~/constants/TablerIconConstants.js'
+import LanguageUtils from '~/utils/LanguageUtils.js'
 const appStore = useAppStore()
 const accountStore = useAccountStore()
 const attrs = useAttrs()
@@ -112,6 +116,10 @@ const props = defineProps({
     default: () => Account.typesList(),
   },
   isMultiSelect: {
+    default: false,
+  },
+  canCreate: {
+    type: Boolean,
     default: false,
   },
 })
@@ -171,5 +179,32 @@ const onRefresh = async () => {
   isLoading.value = true
   await accountStore.fetchAccounts()
   isLoading.value = false
+}
+
+// Only expense and revenue accounts can be created from a name alone, which is what the destination of an expense and the source of an income need
+const createType = computed(() => {
+  if (!props.canCreate || props.isMultiSelect) return null
+  return [Account.types.expense, Account.types.revenue].find((type) => props.allowedTypes.some((allowedType) => isEqual(allowedType, type))) ?? null
+})
+
+const createName = computed(() => {
+  if (!createType.value) return null
+  const name = Account.formatName(search.value)
+  if (!name) return null
+  const key = LanguageUtils.removeAccentsAndLowerCase(name)
+  const exists = accountStore.accountList.some((item) => isEqual(Account.getType(item), createType.value) && LanguageUtils.removeAccentsAndLowerCase(Account.getDisplayName(item)) === key)
+  return exists ? null : name
+})
+
+const isCreating = ref(false)
+const onCreate = async (name) => {
+  if (isCreating.value) return
+  isCreating.value = true
+  const newItem = await accountStore.createAccount(name, createType.value)
+  isCreating.value = false
+  if (!newItem) return
+  search.value = ''
+  modelValue.value = newItem
+  showDropdown.value = false
 }
 </script>

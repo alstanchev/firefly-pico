@@ -4,6 +4,8 @@ import AssistantRepository from '~/repository/AssistantRepository.js'
 import AttachmentRepository from '~/repository/AttachmentRepository.js'
 import TransactionRepository from '~/repository/TransactionRepository.js'
 import TransactionTransformer from '~/transformers/TransactionTransformer.js'
+import Account from '~/models/Account.js'
+import { useAccountStore } from '~/stores/accountStore.js'
 import { useRambleTransactionResolver } from '~/composables/useRambleTransactionResolver.js'
 import { useTransactionAssistantDraft } from '~/composables/useTransactionAssistantDraft.js'
 import UIUtils from '~/utils/UIUtils.js'
@@ -32,6 +34,9 @@ const getCreateErrorMessage = (error) => {
     'Failed to create transaction.'
   )
 }
+
+// A draft whose source or destination only exists by name makes Firefly create that account on save.
+const hasNewAccount = (item) => [get(item, 'attributes.transactions.0.accountSource'), get(item, 'attributes.transactions.0.accountDestination')].some((account) => Account.isNew(account))
 
 // The assistant answers with photo positions; ids survive the user removing a photo, positions do not.
 const getReceiptIds = (transaction, receipts) => {
@@ -210,6 +215,7 @@ export const useRambleDrafts = () => {
     isCreating.value = true
     error.value = ''
     let successCount = 0
+    let hasNewAccounts = false
 
     try {
       for (const draft of toCreate) {
@@ -236,6 +242,7 @@ export const useRambleDrafts = () => {
             drafts.value[index].status = draftStatus.success
             drafts.value[index].response = response
             successCount += 1
+            hasNewAccounts = hasNewAccounts || hasNewAccount(drafts.value[index].item)
             // A created draft is work a re-scan would throw away (and could duplicate).
             hasEditedDrafts.value = true
             await attachReceipts(drafts.value[index], receipts)
@@ -253,6 +260,10 @@ export const useRambleDrafts = () => {
         }
       }
 
+      if (hasNewAccounts) {
+        // The pickers and dashboards should know the accounts Firefly just created.
+        await useAccountStore().fetchAccounts()
+      }
       if (successCount > 0) {
         UIUtils.showToastSuccess(t('transaction.assistant_ramble_created_toast', successCount))
       }
