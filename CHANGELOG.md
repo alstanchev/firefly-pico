@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.4-dev9
+
+- Expense and revenue accounts can be created from the account pickers on
+  the transaction form, the same way as tags and categories: type a store
+  name that does not exist yet and tap "Create". The destination picker
+  of an expense creates an expense account, the source picker of an
+  income creates a revenue account.
+- Scanned receipts put the store under the destination account and use
+  the description for a short summary of what was bought. A store that
+  has no account yet is created by Firefly when the draft is saved; the
+  draft says so, and the account list is refreshed afterwards. A store
+  named in a dictated ramble is handled the same way.
+- Scanned receipts are classified with the best fitting existing category
+  and tags instead of being left empty.
+
 ## 0.2.4-dev8
 
 - Receipt photos are sent to the assistant only when you tap "Scan", not
