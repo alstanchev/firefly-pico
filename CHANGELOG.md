@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.4-dev11
+
+- On desktop, a transaction's photo attachment opens in a popup that
+  shows the whole photo fitted to the window; a click switches to full
+  size with scrolling, another click fits it again. Before, a tall
+  receipt was rendered at the full window width by the mobile preview,
+  which only responds to touch, so with a mouse it could be neither
+  zoomed out nor moved.
+
 ## 0.2.4-dev10
 
 - Receipt scanning asks the assistant for a one or two word summary of
