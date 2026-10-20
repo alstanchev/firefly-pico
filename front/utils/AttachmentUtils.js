@@ -32,12 +32,16 @@ const download = (data, filename = 'filename.pdf') => {
   }
 }
 
+export const getAttachmentObjectUrl = async (url) => {
+  const attachment = await getAttachment(url)
+  return attachment ? URL.createObjectURL(attachment) : null
+}
+
 export const showImageFromUrl = async (url) => {
-  let attachment = await getAttachment(url)
-  if (!attachment) {
+  const blobUrl = await getAttachmentObjectUrl(url)
+  if (!blobUrl) {
     return
   }
-  const blobUrl = URL.createObjectURL(attachment)
   showImagePreview({ images: [blobUrl], closeable: true, onClose: () => URL.revokeObjectURL(blobUrl) })
 }
 

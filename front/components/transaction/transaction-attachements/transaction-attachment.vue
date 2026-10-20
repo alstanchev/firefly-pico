@@ -3,6 +3,12 @@
     <icon-photo :size="30" :stroke="1.4" />
     <div class="text-size-12">{{ displayName }}</div>
   </div>
+
+  <app-popup v-if="appStore.isDesktopLayout" v-model:show="isViewerVisible" closeable :popup-style="{ width: '94vw', height: '92vh', maxHeight: '92vh', padding: 0 }" @closed="onViewerClosed">
+    <div class="attachment-viewer">
+      <img :src="viewerUrl" :alt="displayName" :class="{ zoomed: isZoomed }" @click="isZoomed = !isZoomed" />
+    </div>
+  </app-popup>
 </template>
 
 <script setup>
@@ -10,7 +16,7 @@ import { IconPhoto } from '@tabler/icons-vue'
 
 import { get } from 'lodash-es'
 import { trimString } from '~/utils/StringUtils.js'
-import { downloadFileFromUrl, showImageFromUrl } from '~/utils/AttachmentUtils.js'
+import { downloadFileFromUrl, getAttachmentObjectUrl, showImageFromUrl } from '~/utils/AttachmentUtils.js'
 import { useTap, useTapEvent } from '~/composables/useTap.js'
 import { useActionSheet } from '~/composables/useActionSheet.js'
 import AttachmentRepository from '~/repository/AttachmentRepository.js'
@@ -35,6 +41,28 @@ const downloadUrl = computed(() => get(props.value, 'attributes.download_url'))
 const isImage = computed(() => (get(props.value, 'attributes.mime') ?? '').startsWith('image/'))
 
 const { t } = useI18n()
+const appStore = useAppStore()
+
+// Vant's image preview is touch only (no zoom or pan with a mouse) and shows a tall receipt at full viewport width,
+// so on desktop the photo opens in a popup instead: fitted to the window, a click toggles full size and scrolling.
+const viewerUrl = ref(null)
+const isViewerVisible = ref(false)
+const isZoomed = ref(false)
+
+const showImage = async () => {
+  if (!appStore.isDesktopLayout) {
+    await showImageFromUrl(downloadUrl.value)
+    return
+  }
+  viewerUrl.value = await getAttachmentObjectUrl(downloadUrl.value)
+  isViewerVisible.value = !!viewerUrl.value
+}
+
+const onViewerClosed = () => {
+  URL.revokeObjectURL(viewerUrl.value)
+  viewerUrl.value = null
+  isZoomed.value = false
+}
 
 const tapBinding = useTap(async (event) => {
   switch (event) {
@@ -42,7 +70,7 @@ const tapBinding = useTap(async (event) => {
       emits('isLoading', true)
       try {
         if (isImage.value) {
-          await showImageFromUrl(downloadUrl.value)
+          await showImage()
         } else {
           await downloadFileFromUrl(downloadUrl.value, filename.value)
         }

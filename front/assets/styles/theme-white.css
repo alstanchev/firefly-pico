@@ -64,6 +64,28 @@ body {
     font-size: 12px;
 }
 
+/* Desktop attachment viewer: the photo fits the popup, a click shows it at full size and scrolls */
+.attachment-viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: auto;
+}
+
+.attachment-viewer img {
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+
+.attachment-viewer img.zoomed {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
 .van-popup-title {
     text-align: center;
     margin-top: 14px !important;
