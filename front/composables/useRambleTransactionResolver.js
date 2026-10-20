@@ -158,7 +158,19 @@ export const useRambleTransactionResolver = () => {
       resolveAssistantAccount(rawTransaction.destinationAccountName, Account.getAccountTypesForTransactionTypeDestination(fixedType)) ?? profileStore.defaultAccountDestination,
     )
     const assistantCurrency = resolveCurrency(rawTransaction.currencyCode)
-    const rawDescription = rawTransaction.description || rawTransaction.templateName || rawTransaction.categoryName || rawTransaction.tagNames?.[0] || 'Transaction'
+    // A receipt description that only repeats the store says nothing next to the destination account, so the category or first tag stands in for it
+    const describesStore =
+      rawTransaction.receiptIndexes?.length > 0 &&
+      !!rawTransaction.description &&
+      !!rawTransaction.destinationAccountName &&
+      normalizeName(rawTransaction.description) === normalizeName(rawTransaction.destinationAccountName)
+    const rawDescription =
+      (describesStore ? rawTransaction.categoryName || rawTransaction.tagNames?.[0] : null) ||
+      rawTransaction.description ||
+      rawTransaction.templateName ||
+      rawTransaction.categoryName ||
+      rawTransaction.tagNames?.[0] ||
+      'Transaction'
 
     return {
       id: `${Date.now()}-${index}`,
