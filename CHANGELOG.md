@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.4-dev10
+
+- Receipt scanning asks the assistant for a one or two word summary of
+  what was bought as the description ("groceries", "medicine",
+  "construction materials", "health supplements"), with the store only
+  under the destination account. The receipt rules no longer share the
+  prompt with the dictation rules that defined the description as the
+  store name, which is what kept winning. A description that still only
+  repeats the store falls back to the category or tag the assistant
+  picked.
+- Receipt scanning tells the assistant to pick the existing category and
+  tags that fit the purchased items, and to leave them empty when none
+  fit. The tag list was already part of every request.
+
 ## 0.2.4-dev9
 
 - Expense and revenue accounts can be created from the account pickers on
