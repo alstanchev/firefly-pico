@@ -230,6 +230,11 @@ export default class Account extends BaseModel {
     return !!account && !account.id
   }
 
+  // Only expense and revenue accounts can be created from a name alone, so the pickers and the assistant create nothing else
+  static getCreatableType(allowedTypes) {
+    return [this.types.expense, this.types.revenue].find((type) => allowedTypes.some((allowedType) => allowedType.fireflyCode === type.fireflyCode)) ?? null
+  }
+
   static getCurrency(account) {
     if (!account) {
       return null

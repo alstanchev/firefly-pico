@@ -181,11 +181,7 @@ const onRefresh = async () => {
   isLoading.value = false
 }
 
-// Only expense and revenue accounts can be created from a name alone, which is what the destination of an expense and the source of an income need
-const createType = computed(() => {
-  if (!props.canCreate || props.isMultiSelect) return null
-  return [Account.types.expense, Account.types.revenue].find((type) => props.allowedTypes.some((allowedType) => isEqual(allowedType, type))) ?? null
-})
+const createType = computed(() => (props.canCreate && !props.isMultiSelect ? Account.getCreatableType(props.allowedTypes) : null))
 
 const createName = computed(() => {
   if (!createType.value) return null
@@ -200,10 +196,11 @@ const isCreating = ref(false)
 const onCreate = async (name) => {
   if (isCreating.value) return
   isCreating.value = true
+  const typed = search.value.trim()
   const newItem = await accountStore.createAccount(name, createType.value)
   isCreating.value = false
   if (!newItem) return
-  search.value = ''
+  if (search.value.trim() === typed) search.value = ''
   modelValue.value = newItem
   showDropdown.value = false
 }

@@ -46,7 +46,7 @@ export const useRambleTransactionResolver = () => {
   const accountIndex = computed(() => buildNormalizedIndex(accountStore.accountList, getAccountNames))
   const currencyIndex = computed(() => buildNormalizedIndex(currencyStore.currenciesList, getCurrencyNames))
 
-  const resolveByName = (index, name) => {
+  const resolveByName = (index, name, { uniquePartialMatch = false } = {}) => {
     const normalizedName = normalizeName(name)
     if (!normalizedName) {
       return null
@@ -57,10 +57,13 @@ export const useRambleTransactionResolver = () => {
       return exactMatch.item
     }
 
-    const partialMatch = index.find(
+    const partialMatches = index.filter(
       (entry) => normalizedName.length >= 3 && entry.normalizedNames.some((itemName) => itemName.length >= 3 && (itemName.includes(normalizedName) || normalizedName.includes(itemName))),
     )
-    return partialMatch?.item ?? null
+    if (uniquePartialMatch && partialMatches.length > 1) {
+      return null
+    }
+    return partialMatches[0]?.item ?? null
   }
 
   const resolveTags = (tagNames = []) => {
@@ -86,10 +89,6 @@ export const useRambleTransactionResolver = () => {
 
   const resolveBudget = (budgetName) => {
     return resolveByName(budgetIndex.value, budgetName)
-  }
-
-  const resolveAccount = (accountName) => {
-    return resolveByName(accountIndex.value, accountName)
   }
 
   const resolveCurrency = (currencyCode) => {
@@ -127,12 +126,23 @@ export const useRambleTransactionResolver = () => {
 
   const getRambleContext = () => rambleContext.value
 
-  // An unmatched name becomes a new account of the type the transaction needs in that slot; Firefly creates it when the draft is saved.
-  const resolveAssistantAccount = (accountName, newAccountType) => {
+  // Only accounts the slot can hold count as a match, and a partial match has to be unique: a wrong account is a silent wrong booking.
+  // An unmatched name becomes a new account of the type the slot can create; Firefly creates it when the draft is saved.
+  const resolveAssistantAccount = (accountName, allowedTypes) => {
     if (!accountName?.trim()) {
       return undefined
     }
-    return resolveAccount(accountName) ?? (newAccountType ? Account.getNew(accountName, newAccountType) : undefined)
+    const allowedCodes = allowedTypes.map((type) => type.fireflyCode)
+    const match = resolveByName(
+      accountIndex.value.filter((entry) => allowedCodes.includes(Account.getType(entry.item)?.fireflyCode)),
+      accountName,
+      { uniquePartialMatch: true },
+    )
+    if (match) {
+      return match
+    }
+    const newType = Account.getCreatableType(allowedTypes)
+    return newType ? Account.getNew(accountName, newType) : undefined
   }
 
   const resolveRambleTransaction = (rawTransaction, index) => {
@@ -141,11 +151,11 @@ export const useRambleTransactionResolver = () => {
     const category = resolveCategory(rawTransaction.categoryName)
     const budget = resolveBudget(rawTransaction.budgetName)
     const type = resolveTransactionType(rawTransaction.type)
-    const typeCode = (type ?? Transaction.types.expense).code
+    const fixedType = type ?? Transaction.types.expense
     const fixedAccounts = Transaction.attemptAccountFixOnTypeChange(
-      type ?? Transaction.types.expense,
-      resolveAssistantAccount(rawTransaction.sourceAccountName, typeCode === Transaction.types.income.code ? Account.types.revenue : null) ?? profileStore.defaultAccountSource,
-      resolveAssistantAccount(rawTransaction.destinationAccountName, typeCode === Transaction.types.expense.code ? Account.types.expense : null) ?? profileStore.defaultAccountDestination,
+      fixedType,
+      resolveAssistantAccount(rawTransaction.sourceAccountName, Account.getAccountTypesForTransactionTypeSource(fixedType)) ?? profileStore.defaultAccountSource,
+      resolveAssistantAccount(rawTransaction.destinationAccountName, Account.getAccountTypesForTransactionTypeDestination(fixedType)) ?? profileStore.defaultAccountDestination,
     )
     const assistantCurrency = resolveCurrency(rawTransaction.currencyCode)
     const rawDescription = rawTransaction.description || rawTransaction.templateName || rawTransaction.categoryName || rawTransaction.tagNames?.[0] || 'Transaction'

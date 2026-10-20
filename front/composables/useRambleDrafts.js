@@ -260,10 +260,6 @@ export const useRambleDrafts = () => {
         }
       }
 
-      if (hasNewAccounts) {
-        // The pickers and dashboards should know the accounts Firefly just created.
-        await useAccountStore().fetchAccounts()
-      }
       if (successCount > 0) {
         UIUtils.showToastSuccess(t('transaction.assistant_ramble_created_toast', successCount))
       }
@@ -272,6 +268,10 @@ export const useRambleDrafts = () => {
       if (session === sessionId.value) {
         currentCreateIndex.value = 0
         isCreating.value = false
+      }
+      if (hasNewAccounts) {
+        // The pickers and dashboards should know the accounts Firefly just created, even if the popup was closed meanwhile.
+        await useAccountStore().fetchAccounts()
       }
     }
   }

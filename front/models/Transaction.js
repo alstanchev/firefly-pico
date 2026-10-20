@@ -210,14 +210,16 @@ export default class Transaction extends BaseModel {
     const allowedDestinations = Account.getAccountTypesForTransactionTypeDestination(newType).map((t) => t.fireflyCode)
 
     const fits = (account, allowed) => !!account && allowed.includes(Account.getType(account)?.fireflyCode)
-
-    const pool = [sourceAccount, destinationAccount].filter(Boolean)
     // Compare by id so a Transfer can't end up with the same account in both
     // slots even if the two refs are distinct objects with the same id.
-    const pickFitting = (allowed, exclude) => pool.find((a) => a?.id !== exclude?.id && fits(a, allowed)) ?? null
+    // Accounts the assistant proposes by name have no id yet, so they never count as the same.
+    const isSame = (a, b) => !!a?.id && a.id === b?.id
+
+    const pool = [sourceAccount, destinationAccount].filter(Boolean)
+    const pickFitting = (allowed, exclude) => pool.find((a) => !isSame(a, exclude) && fits(a, allowed)) ?? null
 
     const source = fits(sourceAccount, allowedSources) ? sourceAccount : pickFitting(allowedSources, null)
-    const destination = fits(destinationAccount, allowedDestinations) && destinationAccount?.id !== source?.id ? destinationAccount : pickFitting(allowedDestinations, source)
+    const destination = fits(destinationAccount, allowedDestinations) && !isSame(destinationAccount, source) ? destinationAccount : pickFitting(allowedDestinations, source)
 
     return { source, destination }
   }
